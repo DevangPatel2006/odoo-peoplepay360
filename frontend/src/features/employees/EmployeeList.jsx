@@ -1,0 +1,468 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  Table, 
+  Badge, 
+  Button, 
+  Input, 
+  Select, 
+  Modal, 
+  Pagination, 
+  EmptyState, 
+  Spinner,
+  Dropdown,
+  Alert
+} from '../../components/ui';
+import { EmployeeForm } from './EmployeeForm';
+import { EmployeeDetailModal } from './EmployeeDetailModal';
+import { EmployeeKanban } from './EmployeeKanban';
+import { 
+  UserPlus, 
+  Search, 
+  Filter, 
+  LayoutGrid, 
+  List as ListIcon, 
+  MoreVertical, 
+  Eye, 
+  Edit, 
+  Trash2,
+  Download,
+  ArrowUpDown
+} from 'lucide-react';
+import axiosClient from '../../api/axiosClient';
+
+import { useApp } from '../../store';
+import { 
+  ConfirmModal 
+} from '../../components/ui';
+
+export const EmployeeList = () => {
+  const { addToast } = useApp();
+  const [employees, setEmployees] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [typeFilter, setTypeFilter] = useState('ALL');
+  const [sortBy, setSortBy] = useState('name');
+  const [viewMode, setViewMode] = useState('table'); // table | kanban
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
+  // Modals state
+  const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+
+  // Initial Master Data
+  const initialEmployees = [
+    {
+      id: 'EMP-101',
+      employeeId: 'EMP-101',
+      firstName: 'Alexander',
+      lastName: 'Wright',
+      name: 'Alexander Wright',
+      email: 'alexander.wright@peoplepay360.io',
+      phone: '+1 (555) 234-5678',
+      department: 'Software Engineering',
+      position: 'Senior Lead Architect',
+      employeeType: 'Full-Time',
+      status: 'Active',
+      manager: 'Sarah Jenkins',
+      hireDate: '2023-01-15',
+      schedule: 'Standard 40h/week',
+      bankAccount: 'US89370001928374',
+    },
+    {
+      id: 'EMP-102',
+      employeeId: 'EMP-102',
+      firstName: 'Sophia',
+      lastName: 'Martinez',
+      name: 'Sophia Martinez',
+      email: 'sophia.m@peoplepay360.io',
+      phone: '+1 (555) 345-6789',
+      department: 'Human Resources',
+      position: 'HR Specialist',
+      employeeType: 'Full-Time',
+      status: 'Active',
+      manager: 'Sarah Jenkins',
+      hireDate: '2023-04-10',
+      schedule: 'Standard 40h/week',
+      bankAccount: 'US89370001928888',
+    },
+    {
+      id: 'EMP-103',
+      employeeId: 'EMP-103',
+      firstName: 'Marcus',
+      lastName: 'Vance',
+      name: 'Marcus Vance',
+      email: 'marcus.vance@peoplepay360.io',
+      phone: '+1 (555) 456-7890',
+      department: 'Finance & Accounting',
+      position: 'Payroll Accountant',
+      employeeType: 'Full-Time',
+      status: 'Active',
+      manager: 'Robert Chen',
+      hireDate: '2022-09-01',
+      schedule: 'Standard 40h/week',
+      bankAccount: 'US89370001929999',
+    },
+    {
+      id: 'EMP-104',
+      employeeId: 'EMP-104',
+      firstName: 'Elena',
+      lastName: 'Rostova',
+      name: 'Elena Rostova',
+      email: 'elena.rostova@peoplepay360.io',
+      phone: '+1 (555) 567-8901',
+      department: 'Sales & Marketing',
+      position: 'Marketing Director',
+      employeeType: 'Full-Time',
+      status: 'On Leave',
+      manager: 'Devang Patel',
+      hireDate: '2021-11-15',
+      schedule: 'Standard 40h/week',
+      bankAccount: 'US89370001921111',
+    },
+    {
+      id: 'EMP-105',
+      employeeId: 'EMP-105',
+      firstName: 'David',
+      lastName: 'Chen',
+      name: 'David Chen',
+      email: 'david.chen@peoplepay360.io',
+      phone: '+1 (555) 678-9012',
+      department: 'Software Engineering',
+      position: 'Backend Developer',
+      employeeType: 'Contractor',
+      status: 'Active',
+      manager: 'Alexander Wright',
+      hireDate: '2024-02-01',
+      schedule: 'Flexible 35h/week',
+      bankAccount: 'US89370001922222',
+    },
+  ];
+
+  const fetchEmployees = async () => {
+    setLoading(true);
+    try {
+      const response = await axiosClient.get('/employees');
+      if (response.data && Array.isArray(response.data)) {
+        setEmployees(response.data);
+      } else {
+        setEmployees(initialEmployees);
+      }
+    } catch (err) {
+      setEmployees(initialEmployees);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmployees();
+  }, []);
+
+  // Filter & Search Logic
+  const filteredEmployees = employees.filter((emp) => {
+    const matchesSearch = 
+      emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      emp.position.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesDept = departmentFilter === 'ALL' || emp.department === departmentFilter;
+    const matchesStatus = statusFilter === 'ALL' || emp.status === statusFilter;
+    const matchesType = typeFilter === 'ALL' || emp.employeeType === typeFilter;
+
+    return matchesSearch && matchesDept && matchesStatus && matchesType;
+  });
+
+  // Sort Logic
+  const sortedEmployees = [...filteredEmployees].sort((a, b) => {
+    if (sortBy === 'name') return a.name.localeCompare(b.name);
+    if (sortBy === 'id') return a.id.localeCompare(b.id);
+    if (sortBy === 'department') return a.department.localeCompare(b.department);
+    return 0;
+  });
+
+  // Pagination Slice
+  const totalPages = Math.ceil(sortedEmployees.length / itemsPerPage) || 1;
+  const paginatedEmployees = sortedEmployees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handleSaveEmployee = (savedData) => {
+    if (editingEmployee) {
+      setEmployees((prev) => prev.map((e) => (e.id === savedData.id ? savedData : e)));
+      addToast(`Updated employee profile for ${savedData.name}`, 'success');
+    } else {
+      setEmployees((prev) => [savedData, ...prev]);
+      addToast(`Added new employee record for ${savedData.name}`, 'success');
+    }
+    setIsFormModalOpen(false);
+    setEditingEmployee(null);
+  };
+
+  const confirmDelete = () => {
+    if (deleteTarget) {
+      setEmployees((prev) => prev.filter((e) => e.id !== deleteTarget.id));
+      addToast(`Deleted employee record for ${deleteTarget.name}`, 'info');
+      setDeleteTarget(null);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* PAGE HEADER */}
+      <div className="page-header">
+        <div className="page-header-text">
+          <h1 className="page-title">Employee Master Records</h1>
+          <p className="page-description">
+            Central HR hub for workforce management, employee profiles, department assignments, and contract links.
+          </p>
+        </div>
+        <div className="page-actions">
+          <div style={{ display: 'flex', gap: '4px', background: '#FFFFFF', padding: '2px', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+            <Button 
+              variant={viewMode === 'table' ? 'secondary' : 'ghost'} 
+              size="sm" 
+              icon={ListIcon}
+              onClick={() => setViewMode('table')}
+            >
+              List View
+            </Button>
+            <Button 
+              variant={viewMode === 'kanban' ? 'secondary' : 'ghost'} 
+              size="sm" 
+              icon={LayoutGrid}
+              onClick={() => setViewMode('kanban')}
+            >
+              Kanban View
+            </Button>
+          </div>
+          <Button 
+            variant="primary" 
+            icon={UserPlus}
+            onClick={() => {
+              setEditingEmployee(null);
+              setIsFormModalOpen(true);
+            }}
+          >
+            Create Employee
+          </Button>
+        </div>
+      </div>
+
+      {/* FILTER & SEARCH CONTROL BAR */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        padding: '16px',
+        backgroundColor: '#FFFFFF',
+        borderRadius: '14px',
+        border: '1px solid #E2E8F0',
+        boxShadow: 'var(--shadow-sm)'
+      }}>
+        {/* Search Input */}
+        <div style={{ position: 'relative', width: '280px', flex: '1 1 240px' }}>
+          <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+          <input
+            type="text"
+            className="input"
+            style={{ paddingLeft: '36px' }}
+            placeholder="Search by name, email, position, ID..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Filter Selects */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+          <Select
+            value={departmentFilter}
+            onChange={(e) => setDepartmentFilter(e.target.value)}
+            style={{ width: '180px' }}
+          >
+            <option value="ALL">All Departments</option>
+            <option value="Software Engineering">Software Engineering</option>
+            <option value="Human Resources">Human Resources</option>
+            <option value="Finance & Accounting">Finance & Accounting</option>
+            <option value="Sales & Marketing">Sales & Marketing</option>
+          </Select>
+
+          <Select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{ width: '130px' }}
+          >
+            <option value="ALL">All Status</option>
+            <option value="Active">Active</option>
+            <option value="On Leave">On Leave</option>
+            <option value="Terminated">Terminated</option>
+          </Select>
+
+          <Select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            style={{ width: '140px' }}
+          >
+            <option value="name">Sort by Name</option>
+            <option value="id">Sort by ID</option>
+            <option value="department">Sort by Dept</option>
+          </Select>
+        </div>
+      </div>
+
+      {/* CONTENT: DATA TABLE VS KANBAN */}
+      {loading ? (
+        <div style={{ padding: '48px', textAlign: 'center' }}>
+          <Spinner size="lg" />
+          <p className="text-sm text-secondary" style={{ marginTop: '12px' }}>Loading employee directory...</p>
+        </div>
+      ) : paginatedEmployees.length === 0 ? (
+        <EmptyState
+          title="No Employee Records Found"
+          description="No employee records match your search filter criteria."
+          action={
+            <Button 
+              variant="outline" 
+              onClick={() => { setSearchQuery(''); setDepartmentFilter('ALL'); setStatusFilter('ALL'); }}
+            >
+              Reset Filters
+            </Button>
+          }
+        />
+      ) : viewMode === 'kanban' ? (
+        <EmployeeKanban
+          employees={paginatedEmployees}
+          onSelect={(emp) => {
+            setSelectedEmployee(emp);
+            setIsDetailModalOpen(true);
+          }}
+        />
+      ) : (
+        <Table headers={['Employee', 'Employee ID', 'Department', 'Position', 'Employee Type', 'Status', 'Manager', 'Actions']}>
+          {paginatedEmployees.map((emp) => (
+            <tr key={emp.id || emp.employeeId}>
+              <td>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    backgroundColor: '#172554',
+                    color: '#ffffff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: '600',
+                    fontSize: '0.875rem'
+                  }}>
+                    {emp.name ? emp.name.split(' ').map(n => n[0]).join('') : 'E'}
+                  </div>
+                  <div>
+                    <strong style={{ display: 'block', color: '#0F172A' }}>{emp.name}</strong>
+                    <span className="text-xs text-muted">{emp.email}</span>
+                  </div>
+                </div>
+              </td>
+              <td><span className="font-mono text-sm font-semibold">{emp.id || emp.employeeId}</span></td>
+              <td>{emp.department}</td>
+              <td>{emp.position}</td>
+              <td><Badge variant="neutral">{emp.employeeType || 'Full-Time'}</Badge></td>
+              <td>
+                <Badge variant={emp.status === 'Active' ? 'success' : emp.status === 'On Leave' ? 'warning' : 'error'} dot>
+                  {emp.status}
+                </Badge>
+              </td>
+              <td><span className="text-sm">{emp.manager || 'Sarah Jenkins'}</span></td>
+              <td>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    icon={Eye}
+                    title="Central HR Hub"
+                    onClick={() => {
+                      setSelectedEmployee(emp);
+                      setIsDetailModalOpen(true);
+                    }}
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    icon={Edit}
+                    title="Edit Employee"
+                    onClick={() => {
+                      setEditingEmployee(emp);
+                      setIsFormModalOpen(true);
+                    }}
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    icon={Trash2}
+                    title="Delete Record"
+                    onClick={() => setDeleteTarget(emp)}
+                    style={{ color: '#E11D48' }}
+                  />
+                </div>
+              </td>
+            </tr>
+          ))}
+        </Table>
+      )}
+
+      {/* PAGINATION */}
+      {sortedEmployees.length > itemsPerPage && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          totalRecords={sortedEmployees.length}
+        />
+      )}
+
+      {/* CREATE / EDIT EMPLOYEE FORM MODAL */}
+      <Modal
+        isOpen={isFormModalOpen}
+        onClose={() => { setIsFormModalOpen(false); setEditingEmployee(null); }}
+        size="lg"
+        title={editingEmployee ? `Edit Employee Record: ${editingEmployee.name}` : 'Create New Employee Record'}
+      >
+        <EmployeeForm
+          employee={editingEmployee}
+          onSave={handleSaveEmployee}
+          onCancel={() => { setIsFormModalOpen(false); setEditingEmployee(null); }}
+        />
+      </Modal>
+
+      {/* CENTRAL HR HUB DETAIL MODAL */}
+      <EmployeeDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        employee={selectedEmployee}
+        onEdit={(emp) => {
+          setEditingEmployee(emp);
+          setIsFormModalOpen(true);
+        }}
+      />
+
+      {/* CONFIRMATION DIALOG FOR DELETION */}
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Delete Employee Record"
+        message={`Are you sure you want to delete the employee record for ${deleteTarget?.name}? This action cannot be undone.`}
+        confirmText="Delete Record"
+        variant="danger"
+      />
+    </div>
+  );
+};
+
+export default EmployeeList;

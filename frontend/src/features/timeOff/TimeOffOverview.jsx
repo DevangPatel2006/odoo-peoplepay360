@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Badge, Button } from '../../components/ui';
-import { Calendar, ArrowRight } from 'lucide-react';
+import { Calendar, ArrowRight, Check, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const TimeOffOverview = () => {
