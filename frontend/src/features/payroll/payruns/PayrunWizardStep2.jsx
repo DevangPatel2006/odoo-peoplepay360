@@ -187,7 +187,7 @@ export const PayrunWizardStep2 = ({ config, onBack, onCreatePayrun }) => {
         <div className="text-muted" style={{ padding: '0 12px' }}>→</div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#7C3AED', color: '#FFFFFF', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' }}>02</div>
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#059669', color: '#FFFFFF', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' }}>02</div>
           <div>
             <strong style={{ display: 'block', color: '#0F172A', fontSize: '0.875rem' }}>Step 2: Employees</strong>
             <span className="text-xs text-secondary">Targeting & eligibility</span>
@@ -210,16 +210,17 @@ export const PayrunWizardStep2 = ({ config, onBack, onCreatePayrun }) => {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '16px 20px',
-        backgroundColor: '#172554',
-        color: '#FFFFFF',
+        backgroundColor: '#FFFFFF',
+        color: '#0F172A',
         borderRadius: '14px',
+        border: '1px solid #E2E8F0',
         boxShadow: 'var(--shadow-sm)'
       }}>
         <div>
-          <h3 style={{ color: '#FFFFFF', fontSize: '1.25rem', fontWeight: 700 }}>
+          <h3 style={{ color: '#0F172A', fontSize: '1.25rem', fontWeight: 700 }}>
             {config.payrunTitle}
           </h3>
-          <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginTop: '2px' }}>
+          <p style={{ color: '#64748B', fontSize: '0.875rem', marginTop: '2px' }}>
             Period: {config.startDate} to {config.endDate}
           </p>
         </div>

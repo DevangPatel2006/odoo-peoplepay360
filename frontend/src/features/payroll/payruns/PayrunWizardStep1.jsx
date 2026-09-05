@@ -91,7 +91,7 @@ export const PayrunWizardStep1 = ({ initialConfig, onNext, onCancel }) => {
         boxShadow: 'var(--shadow-sm)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#7C3AED', color: '#FFFFFF', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' }}>01</div>
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#059669', color: '#FFFFFF', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' }}>01</div>
           <div>
             <strong style={{ display: 'block', color: '#0F172A', fontSize: '0.875rem' }}>Step 1: Configuration</strong>
             <span className="text-xs text-secondary">Pay period & structure scope</span>

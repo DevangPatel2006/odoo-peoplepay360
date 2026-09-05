@@ -11,6 +11,7 @@ export const TimeOffOverview = ({ data = [], recentRequests = [] }) => {
 
   return (
     <Card 
+      className="dashboard-card"
       title="Time Off & Allocation Overview" 
       subtitle="Recent leave requests and allocation balances"
       action={

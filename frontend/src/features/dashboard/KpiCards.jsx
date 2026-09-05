@@ -28,8 +28,8 @@ export const KpiCards = ({ data = {} }) => {
       value: totalEmps,
       subtitle: 'Active organization workforce',
       icon: Users,
-      colorType: 'normal',
-      badge: { text: 'Workforce', type: 'primary' },
+      colorType: 'emerald',
+      badge: { text: 'Workforce', type: 'accent' },
       onClick: () => navigate('/employees'),
     },
     {
@@ -49,7 +49,7 @@ export const KpiCards = ({ data = {} }) => {
       subtitle: data?.kpis?.total_net_salary_paid ? `Disbursed: $${parseFloat(data.kpis.total_net_salary_paid).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : 'Current Payrun Status',
       icon: DollarSign,
       colorType: 'normal',
-      badge: { text: 'Payroll', type: 'accent' },
+      badge: { text: 'Payroll', type: 'neutral' },
       onClick: () => navigate('/payroll'),
     },
     {
@@ -78,23 +78,28 @@ export const KpiCards = ({ data = {} }) => {
       value: payrollWarnings,
       subtitle: 'Unresolved payroll anomalies',
       icon: AlertOctagon,
-      colorType: payrollWarnings > 0 ? 'critical' : 'normal',
+      colorType: payrollWarnings > 0 ? 'critical' : 'success',
       badge: { text: payrollWarnings > 0 ? 'Action Needed' : 'Clean', type: payrollWarnings > 0 ? 'error' : 'success' },
       onClick: () => navigate('/payroll'),
     },
   ];
 
-  // Color logic mapping
+  // Color logic mapping for Emerald & Slate palette
   const colorStyles = {
-    normal: {
-      bg: '#EFF6FF',
-      iconColor: '#172554',
-      borderColor: '#BFDBFE',
-    },
-    success: {
-      bg: '#D1FAE5',
+    emerald: {
+      bg: '#ECFDF5',
       iconColor: '#059669',
       borderColor: '#A7F3D0',
+    },
+    normal: {
+      bg: '#F1F5F9',
+      iconColor: '#334155',
+      borderColor: '#CBD5E1',
+    },
+    success: {
+      bg: '#ECFDF5',
+      iconColor: '#16A34A',
+      borderColor: '#BBF7D0',
     },
     warning: {
       bg: '#FEF3C7',
@@ -102,19 +107,14 @@ export const KpiCards = ({ data = {} }) => {
       borderColor: '#FDE68A',
     },
     critical: {
-      bg: '#FFE4E6',
-      iconColor: '#E11D48',
+      bg: '#FEE2E2',
+      iconColor: '#DC2626',
       borderColor: '#FECDD3',
     },
   };
 
   return (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-      gap: '16px',
-      marginBottom: '24px'
-    }}>
+    <div className="dashboard-kpi-grid">
       {kpis.map((kpi) => {
         const style = colorStyles[kpi.colorType] || colorStyles.normal;
         const Icon = kpi.icon;
@@ -124,34 +124,42 @@ export const KpiCards = ({ data = {} }) => {
             key={kpi.id} 
             interactive 
             onClick={kpi.onClick}
-            style={{ borderTop: `3px solid ${style.iconColor}` }}
+            style={{ 
+              borderTop: `3px solid ${style.iconColor}`,
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span className="text-sm text-secondary font-medium">{kpi.title}</span>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span className="text-sm text-secondary font-medium">{kpi.title}</span>
+                <div style={{
+                  padding: '8px',
+                  borderRadius: '10px',
+                  backgroundColor: style.bg,
+                  color: style.iconColor,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  <Icon size={20} />
+                </div>
+              </div>
+
               <div style={{
-                padding: '8px',
-                borderRadius: '10px',
-                backgroundColor: style.bg,
-                color: style.iconColor,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
+                fontSize: typeof kpi.value === 'number' ? '1.875rem' : '1.35rem',
+                fontWeight: '700',
+                color: '#12151A',
+                marginTop: '12px',
+                lineHeight: 1.2
               }}>
-                <Icon size={20} />
+                {kpi.value}
               </div>
             </div>
 
-            <div style={{
-              fontSize: typeof kpi.value === 'number' ? '1.875rem' : '1.35rem',
-              fontWeight: '700',
-              color: '#0F172A',
-              marginTop: '12px',
-              lineHeight: 1.2
-            }}>
-              {kpi.value}
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '14px', paddingTop: '8px', borderTop: '1px solid #F1F5F9' }}>
               <span className="text-xs text-muted">{kpi.subtitle}</span>
               <Badge variant={kpi.badge.type}>{kpi.badge.text}</Badge>
             </div>

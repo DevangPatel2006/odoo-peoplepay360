@@ -152,9 +152,11 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit, onReset
       {/* HEADER SECTION */}
       <div style={{
         padding: '20px',
-        backgroundColor: '#172554',
-        color: '#ffffff',
+        backgroundColor: '#FFFFFF',
+        color: '#0F172A',
         borderRadius: '12px',
+        border: '1px solid #E2E8F0',
+        boxShadow: 'var(--shadow-sm)',
         marginBottom: '20px',
         display: 'flex',
         alignItems: 'center',
@@ -167,7 +169,7 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit, onReset
             width: '56px',
             height: '56px',
             borderRadius: '50%',
-            backgroundColor: '#7C3AED',
+            background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
             color: '#ffffff',
             display: 'flex',
             alignItems: 'center',
@@ -179,12 +181,12 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit, onReset
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <h2 style={{ fontSize: '1.35rem', fontWeight: '700', color: '#ffffff' }}>{employee.name}</h2>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: '700', color: '#0F172A' }}>{employee.name}</h2>
               <Badge variant={employee.status === 'Active' ? 'success' : 'warning'}>
                 {employee.status}
               </Badge>
             </div>
-            <div style={{ fontSize: '0.875rem', color: '#94A3B8', marginTop: '2px' }}>
+            <div style={{ fontSize: '0.875rem', color: '#64748B', marginTop: '2px' }}>
               ID: <strong>{employee.id || employee.employeeId}</strong> • {employee.position} ({employee.department})
             </div>
           </div>
@@ -214,7 +216,7 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit, onReset
             }}
             className="card-interactive"
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#7C3AED', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#059669', marginBottom: '8px' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B' }}>1. CONTRACT</span>
               <FileText size={18} />
             </div>
@@ -318,7 +320,7 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit, onReset
             }}
             className="card-interactive"
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#172554', marginBottom: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#059669', marginBottom: '8px' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B' }}>5. PAYSLIPS</span>
               <DollarSign size={18} />
             </div>

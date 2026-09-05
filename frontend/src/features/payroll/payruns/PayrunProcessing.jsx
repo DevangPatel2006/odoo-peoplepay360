@@ -189,7 +189,7 @@ export const PayrunProcessing = ({ payrun, onDone }) => {
             width: '34px',
             height: '34px',
             borderRadius: '50%',
-            backgroundColor: currentStatus === 'Computed' ? '#7C3AED' : currentStatus === 'Validated' || currentStatus === 'Paid' ? '#059669' : '#E2E8F0',
+            backgroundColor: currentStatus === 'Computed' ? '#059669' : currentStatus === 'Validated' || currentStatus === 'Paid' ? '#059669' : '#E2E8F0',
             color: currentStatus === 'Draft' ? '#64748B' : '#FFFFFF',
             fontWeight: '700',
             display: 'flex',
@@ -233,7 +233,7 @@ export const PayrunProcessing = ({ payrun, onDone }) => {
             width: '34px',
             height: '34px',
             borderRadius: '50%',
-            backgroundColor: currentStatus === 'Paid' ? '#172554' : '#E2E8F0',
+            backgroundColor: currentStatus === 'Paid' ? '#059669' : '#E2E8F0',
             color: currentStatus === 'Paid' ? '#FFFFFF' : '#64748B',
             fontWeight: '700',
             display: 'flex',
@@ -256,14 +256,15 @@ export const PayrunProcessing = ({ payrun, onDone }) => {
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '20px 24px',
-        backgroundColor: '#172554',
-        color: '#FFFFFF',
+        backgroundColor: '#FFFFFF',
+        color: '#0F172A',
         borderRadius: '14px',
-        boxShadow: 'var(--shadow-md)'
+        border: '1px solid #E2E8F0',
+        boxShadow: 'var(--shadow-sm)'
       }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <h2 style={{ color: '#FFFFFF', fontSize: '1.4rem', fontWeight: 700 }}>
+            <h2 style={{ color: '#0F172A', fontSize: '1.4rem', fontWeight: 700 }}>
               {payrunDetails?.name || payrun?.name}
             </h2>
             <Badge 
@@ -273,7 +274,7 @@ export const PayrunProcessing = ({ payrun, onDone }) => {
               {currentStatus}
             </Badge>
           </div>
-          <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginTop: '4px' }}>
+          <p style={{ color: '#64748B', fontSize: '0.875rem', marginTop: '4px' }}>
             Pay Period: {periodStr} • Structure: {payrunDetails?.salary_structure_name || 'Standard'}
           </p>
         </div>

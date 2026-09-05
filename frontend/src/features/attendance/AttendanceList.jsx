@@ -233,7 +233,7 @@ export const AttendanceList = () => {
                 </td>
                 <td>
                   {/* Worked hours consumed directly from backend API contract */}
-                  <strong style={{ color: '#172554' }}>{att.workedHours}</strong>
+                  <strong style={{ color: '#0F172A' }}>{att.workedHours}</strong>
                 </td>
                 <td>
                   {/* Color logic: Present → Emerald, Late → Amber, Absent → Error, On Leave → Neutral */}

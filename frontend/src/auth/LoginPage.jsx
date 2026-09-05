@@ -61,7 +61,7 @@ export const LoginPage = () => {
   return (
     <form onSubmit={handleSubmit}>
       <h3 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '4px', textAlign: 'center' }}>
-        Sign In to PeoplePay360
+        Sign In to PayOps
       </h3>
       <p className="text-sm text-secondary" style={{ textAlign: 'center', marginBottom: '20px' }}>
         Enter your enterprise credentials to access HR & Payroll.

@@ -13,7 +13,7 @@ export class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error('PeoplePay360 UI ErrorBoundary caught an error:', error, errorInfo);
+    console.error('PayOps UI ErrorBoundary caught an error:', error, errorInfo);
   }
 
   handleReload = () => {

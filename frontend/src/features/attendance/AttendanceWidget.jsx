@@ -81,16 +81,16 @@ export const AttendanceWidget = ({ onRefresh }) => {
   };
 
   return (
-    <Card style={{ background: 'linear-gradient(135deg, #172554 0%, #1E3A8A 100%)', color: '#ffffff' }}>
+    <Card style={{ backgroundColor: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '14px', boxShadow: 'var(--shadow-sm)' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
             width: '48px',
             height: '48px',
             borderRadius: '12px',
-            backgroundColor: isCheckedIn ? 'rgba(5, 150, 105, 0.25)' : 'rgba(217, 119, 6, 0.25)',
+            backgroundColor: isCheckedIn ? '#ECFDF5' : '#FEF3C7',
             border: `1px solid ${isCheckedIn ? '#A7F3D0' : '#FDE68A'}`,
-            color: isCheckedIn ? '#6EE7B7' : '#FDE68A',
+            color: isCheckedIn ? '#059669' : '#D97706',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -99,14 +99,14 @@ export const AttendanceWidget = ({ onRefresh }) => {
           </div>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h3 style={{ color: '#ffffff', fontSize: '1.125rem' }}>Daily Attendance Terminal</h3>
+              <h3 style={{ color: '#0F172A', fontSize: '1.125rem', fontWeight: 600 }}>Daily Attendance Terminal</h3>
               {!initialLoading && (
                 <Badge variant={isCheckedIn ? 'success' : 'warning'}>
                   {isCheckedIn ? 'Checked In' : 'Checked Out'}
                 </Badge>
               )}
             </div>
-            <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginTop: '2px' }}>
+            <p style={{ color: '#64748B', fontSize: '0.875rem', marginTop: '2px' }}>
               {initialLoading
                 ? 'Loading today\'s status...'
                 : isCheckedIn
@@ -117,7 +117,7 @@ export const AttendanceWidget = ({ onRefresh }) => {
         </div>
 
         <Button
-          variant={isCheckedIn ? 'danger' : 'accent'}
+          variant={isCheckedIn ? 'danger' : 'primary'}
           loading={loading || initialLoading}
           icon={isCheckedIn ? LogOut : LogIn}
           onClick={isCheckedIn ? handleCheckOut : handleCheckIn}

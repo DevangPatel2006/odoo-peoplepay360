@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, Tabs, Badge, Button, Spinner } from '../../components/ui';
 import { RequestList } from './RequestList';
 import { AllocationList } from './AllocationList';
-import { TimeOffTypeList } from './TimeOffTypeList';
 import { Calendar, RefreshCw, ArrowRight } from 'lucide-react';
 import axiosClient from '../../api/axiosClient';
 
@@ -14,7 +13,6 @@ export const TimeOffPage = () => {
   const tabs = [
     { id: 'requests', label: 'Time Off Requests' },
     { id: 'allocations', label: 'Leave Allocations' },
-    { id: 'types', label: 'Leave Types' },
   ];
 
   const fetchStats = async () => {
@@ -123,7 +121,6 @@ export const TimeOffPage = () => {
         <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
         {activeTab === 'requests' && <RequestList onRefreshBalances={fetchStats} />}
         {activeTab === 'allocations' && <AllocationList onRefreshBalances={fetchStats} />}
-        {activeTab === 'types' && <TimeOffTypeList />}
       </Card>
     </div>
   );

@@ -303,7 +303,7 @@ export const EmployeeList = () => {
                     width: '36px',
                     height: '36px',
                     borderRadius: '50%',
-                    backgroundColor: '#172554',
+                    background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
                     color: '#ffffff',
                     display: 'flex',
                     alignItems: 'center',

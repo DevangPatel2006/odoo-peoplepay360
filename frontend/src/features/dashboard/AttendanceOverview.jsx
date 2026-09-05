@@ -16,6 +16,7 @@ export const AttendanceOverview = ({ data = [] }) => {
 
   return (
     <Card 
+      className="dashboard-card"
       title="Attendance Snapshot" 
       subtitle="Aggregated check-in & worked hours from active records"
       action={
@@ -25,42 +26,44 @@ export const AttendanceOverview = ({ data = [] }) => {
         </Button>
       }
     >
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '16px' }}>
-        <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#059669', fontSize: '0.75rem', fontWeight: 600 }}>
-            <CheckCircle2 size={14} /> Present Today
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' }}>
+          <div style={{ padding: '12px 10px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#059669', fontSize: '0.75rem', fontWeight: 600 }}>
+              <CheckCircle2 size={13} /> Present
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '4px', color: '#12151A' }}>
+              {presentTotal}
+            </div>
           </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '4px', color: '#0F172A' }}>
-            {presentTotal}
+
+          <div style={{ padding: '12px 10px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#D97706', fontSize: '0.75rem', fontWeight: 600 }}>
+              <Clock size={13} /> On Leave
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '4px', color: '#12151A' }}>
+              {onLeaveTotal}
+            </div>
+          </div>
+
+          <div style={{ padding: '12px 10px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', textAlign: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: '#DC2626', fontSize: '0.75rem', fontWeight: 600 }}>
+              <AlertTriangle size={13} /> Exceptions
+            </div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '4px', color: '#12151A' }}>
+              {unresolvedTotal}
+            </div>
           </div>
         </div>
 
-        <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#D97706', fontSize: '0.75rem', fontWeight: 600 }}>
-            <Clock size={14} /> On Leave
-          </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '4px', color: '#0F172A' }}>
-            {onLeaveTotal}
-          </div>
+        <div style={{ padding: '12px 14px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+          <span className="text-xs text-secondary">
+            Recorded: <strong>{totalWorkedHours.toFixed(1)} hrs</strong> ({avgWorkedHours}h avg)
+          </span>
+          <Badge variant={unresolvedTotal === 0 ? 'success' : 'warning'}>
+            {unresolvedTotal === 0 ? 'Normal' : 'Requires Review'}
+          </Badge>
         </div>
-
-        <div style={{ padding: '12px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#E11D48', fontSize: '0.75rem', fontWeight: 600 }}>
-            <AlertTriangle size={14} /> Exceptions
-          </div>
-          <div style={{ fontSize: '1.5rem', fontWeight: 700, marginTop: '4px', color: '#0F172A' }}>
-            {unresolvedTotal}
-          </div>
-        </div>
-      </div>
-
-      <div style={{ padding: '12px 14px', background: '#EFF6FF', borderRadius: '10px', border: '1px solid #BFDBFE', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span className="text-xs text-secondary">
-          Recorded total worked hours: <strong>{totalWorkedHours.toFixed(1)} hrs</strong> ({avgWorkedHours} hrs avg/record)
-        </span>
-        <Badge variant={unresolvedTotal === 0 ? 'success' : 'warning'}>
-          {unresolvedTotal === 0 ? 'Normal' : 'Requires Review'}
-        </Badge>
       </div>
     </Card>
   );

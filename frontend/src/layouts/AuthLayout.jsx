@@ -23,10 +23,10 @@ export const AuthLayout = () => {
         {/* Brand Header */}
         <div style={{ textCenter: 'center', marginBottom: '28px', textAlign: 'center' }}>
           <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #172554 0%, #7C3AED 100%)',
+            width: '44px',
+            height: '44px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
             color: '#FFFFFF',
             display: 'inline-flex',
             alignItems: 'center',
@@ -37,7 +37,7 @@ export const AuthLayout = () => {
           }}>
             P
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#0F172A' }}>PeoplePay360</h2>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: '700', color: '#12151A' }}>PayOps</h2>
           <p style={{ fontSize: '0.875rem', color: '#64748B', marginTop: '4px' }}>
             Enterprise HR & Payroll Platform
           </p>

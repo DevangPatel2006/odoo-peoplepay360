@@ -222,7 +222,7 @@ export const RuleList = () => {
           {sortedRules.map((rule) => (
             <tr key={rule.id}>
               <td><span className="font-mono font-bold text-xs" style={{ color: '#64748B' }}>#{rule.sequence}</span></td>
-              <td><span className="font-mono text-sm font-semibold" style={{ color: '#7C3AED' }}>{rule.code}</span></td>
+              <td><span className="font-mono text-sm font-semibold" style={{ color: '#059669' }}>{rule.code}</span></td>
               <td><strong style={{ color: '#0F172A' }}>{rule.name}</strong></td>
               <td>
                 <Badge variant={getCategoryBadgeVariant(rule.category)}>

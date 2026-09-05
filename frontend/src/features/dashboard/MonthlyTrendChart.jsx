@@ -37,27 +37,28 @@ export const MonthlyTrendChart = ({ data: initialData }) => {
 
   return (
     <Card
+      className="dashboard-card"
       title="Monthly Payroll Expenditure Trend"
       subtitle="Historical Gross vs Net Salary Disbursement"
     >
       {loading ? (
-        <div style={{ padding: '24px', textAlign: 'center' }}>
+        <div style={{ padding: '24px', textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <Spinner size="md" />
           <p className="text-xs text-secondary" style={{ marginTop: '6px' }}>Loading trend data...</p>
         </div>
       ) : error ? (
-        <div className="text-sm text-secondary" style={{ padding: '16px', textAlign: 'center' }}>
+        <div className="text-sm text-secondary" style={{ padding: '16px', textAlign: 'center', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {error}
         </div>
       ) : trendData.length === 0 ? (
-        <div className="text-sm text-secondary" style={{ padding: '24px', textAlign: 'center' }}>
+        <div className="text-sm text-secondary" style={{ padding: '24px', textAlign: 'center', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           No payrun trend data available yet. Finalize your first payrun to see monthly analytics.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', gap: '16px', fontSize: '0.75rem', color: '#64748B' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ width: '12px', height: '12px', backgroundColor: '#3B82F6', borderRadius: '2px' }} />
+              <span style={{ width: '12px', height: '12px', backgroundColor: '#0284C7', borderRadius: '2px' }} />
               Gross Salary
             </span>
             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -76,14 +77,14 @@ export const MonthlyTrendChart = ({ data: initialData }) => {
               return (
                 <div key={item.pay_month} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
-                    <span className="font-semibold" style={{ color: '#0F172A' }}>{item.pay_month}</span>
+                    <span className="font-semibold" style={{ color: '#12151A' }}>{item.pay_month}</span>
                     <span className="text-secondary text-xs">
                       Gross: ${gross.toLocaleString()} • Net: ${net.toLocaleString()} ({item.payslips_count} slips)
                     </span>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    <div style={{ height: '8px', width: `${grossPct}%`, backgroundColor: '#3B82F6', borderRadius: '4px', transition: 'width 300ms ease' }} />
+                    <div style={{ height: '8px', width: `${grossPct}%`, backgroundColor: '#0284C7', borderRadius: '4px', transition: 'width 300ms ease' }} />
                     <div style={{ height: '8px', width: `${netPct}%`, backgroundColor: '#059669', borderRadius: '4px', transition: 'width 300ms ease' }} />
                   </div>
                 </div>

@@ -67,7 +67,6 @@ export const MainLayout = () => {
   // Secondary Bottom Navigation Links
   const bottomNavItems = [
     { path: '/user-management', label: 'Settings', icon: Settings, roles: ['Admin'] },
-    { path: '/design-system', label: 'Design System', icon: Palette, roles: ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User', 'Employee'] },
   ].filter((item) => isAdmin || item.roles.some((r) => userRoles.includes(r)));
 
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -87,12 +86,12 @@ export const MainLayout = () => {
         />
       )}
 
-      {/* LEFT SIDEBAR (Background #172554) */}
+      {/* LEFT SIDEBAR */}
       <aside className={`sidebar ${!sidebarOpen ? 'sidebar-collapsed' : ''} ${mobileSidebarOpen ? 'sidebar-mobile-open' : ''}`}>
         {/* Sidebar Logo */}
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">P</div>
-          {sidebarOpen && <span className="sidebar-logo-text">PeoplePay360</span>}
+          {sidebarOpen && <span className="sidebar-logo-text">PayOps</span>}
         </div>
 
         {/* Primary Workflow Navigation (RBAC Filtered) */}
@@ -142,7 +141,7 @@ export const MainLayout = () => {
 
       {/* MAIN WRAPPER & TOP BAR */}
       <div className="main-wrapper">
-        {/* TOP BAR (White Surface) */}
+        {/* TOP BAR */}
         <header className="topbar">
           <div className="topbar-left">
             <button 
@@ -158,18 +157,6 @@ export const MainLayout = () => {
             >
               <Menu size={20} />
             </button>
-
-            {/* Global Search Bar */}
-            <div className="topbar-search">
-              <Search size={16} className="topbar-search-icon" />
-              <input
-                type="text"
-                className="input"
-                placeholder="Search employees, contracts, payruns..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
           </div>
 
           <div className="topbar-right">
@@ -186,7 +173,7 @@ export const MainLayout = () => {
               color: '#334155',
               border: '1px solid #E2E8F0'
             }}>
-              <ShieldCheck size={15} style={{ color: '#2563EB' }} />
+              <ShieldCheck size={15} style={{ color: 'var(--color-accent)' }} />
               <span>Role: {userRoles.join(', ') || 'Employee'}</span>
             </div>
 
@@ -241,7 +228,7 @@ export const MainLayout = () => {
                 </div>
               }
               items={[
-                { label: user?.email || 'devang@peoplepay360.io', icon: User },
+                { label: user?.email || 'admin@payops.com', icon: User },
                 { label: `Active Role: ${userRole}`, icon: ShieldAlert },
                 { divider: true },
                 { label: 'Logout', icon: LogOut, onClick: handleLogout },

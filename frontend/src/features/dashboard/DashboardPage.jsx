@@ -75,7 +75,7 @@ export const DashboardPage = () => {
       {/* TOP HEADER SECTION */}
       <div className="page-header">
         <div className="page-header-text">
-          <h1 className="page-title">PeoplePay360 Dashboard</h1>
+          <h1 className="page-title">PayOps Dashboard</h1>
           <p className="page-description">Real-time workforce, attendance, and strategic payroll intelligence.</p>
         </div>
         <div className="page-actions">
@@ -113,7 +113,7 @@ export const DashboardPage = () => {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#1E293B', fontWeight: 600, fontSize: '0.875rem' }}>
-            <Filter size={16} color="#7C3AED" />
+            <Filter size={16} color="var(--color-accent)" />
             <span>Filter Analytics:</span>
           </div>
 
@@ -196,22 +196,17 @@ export const DashboardPage = () => {
       {/* ATTENTION REQUIRED (Actionable Warnings Section) */}
       <AlertsPanel warnings={dashboardData?.alerts || []} />
 
-      {/* PAYROLL & HR ACTIVITY GRID */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
-        {/* Payroll Breakdown Section */}
+      {/* FINANCIAL ANALYTICS (2 EQUAL COLUMNS) */}
+      <div className="dashboard-row-financials">
         <SalaryCostByDeptChart data={dashboardData?.salaryCost || []} />
-
-        {/* Department Overview */}
-        <DepartmentOverview data={dashboardData?.departmentOverview || []} />
-
-        {/* Monthly Trend Analytics */}
         <MonthlyTrendChart data={dashboardData?.monthlyTrend || []} />
+      </div>
 
-        {/* HR Activity Overview Section */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <AttendanceOverview data={dashboardData?.attendance} />
-          <TimeOffOverview data={dashboardData?.timeOff} recentRequests={dashboardData?.recentRequests} />
-        </div>
+      {/* WORKFORCE & HR OPERATIONS (3 EQUAL COLUMNS) */}
+      <div className="dashboard-row-operations">
+        <DepartmentOverview data={dashboardData?.departmentOverview || []} />
+        <AttendanceOverview data={dashboardData?.attendance} />
+        <TimeOffOverview data={dashboardData?.timeOff} recentRequests={dashboardData?.recentRequests} />
       </div>
     </div>
   );

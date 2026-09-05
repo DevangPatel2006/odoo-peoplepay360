@@ -193,8 +193,8 @@ export const EmployeeForm = ({ employee, onSave, onCancel, onResetCredentials })
 
       {/* SECTION 1: Personal Information */}
       <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#172554', fontWeight: 600 }}>
-          <User size={18} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#0F172A', fontWeight: 600 }}>
+          <User size={18} style={{ color: '#059669' }} />
           <span>1. Personal & Contact Information</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
@@ -218,7 +218,7 @@ export const EmployeeForm = ({ employee, onSave, onCancel, onResetCredentials })
             value={formData.work_email}
             onChange={(e) => handleChange('work_email', e.target.value)}
             error={errors.work_email}
-            placeholder="alex.w@peoplepay360.com"
+            placeholder="alex.w@payops.com"
           />
           <Input
             label="Phone Number"
@@ -231,8 +231,8 @@ export const EmployeeForm = ({ employee, onSave, onCancel, onResetCredentials })
 
       {/* SECTION 2: Employment Information */}
       <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#172554', fontWeight: 600 }}>
-          <Briefcase size={18} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#0F172A', fontWeight: 600 }}>
+          <Briefcase size={18} style={{ color: '#059669' }} />
           <span>2. Employment Information</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
@@ -279,8 +279,8 @@ export const EmployeeForm = ({ employee, onSave, onCancel, onResetCredentials })
 
       {/* SECTION 3: Organization Hierarchy */}
       <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#172554', fontWeight: 600 }}>
-          <Building size={18} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#0F172A', fontWeight: 600 }}>
+          <Building size={18} style={{ color: '#059669' }} />
           <span>3. Organization & Hierarchy</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
@@ -321,8 +321,8 @@ export const EmployeeForm = ({ employee, onSave, onCancel, onResetCredentials })
 
       {/* SECTION 4 & 5: Working Schedule & Direct Deposit */}
       <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#172554', fontWeight: 600 }}>
-          <Clock size={18} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#0F172A', fontWeight: 600 }}>
+          <Clock size={18} style={{ color: '#059669' }} />
           <span>4. Working Schedule & Direct Deposit</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>

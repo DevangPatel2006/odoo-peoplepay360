@@ -26,11 +26,11 @@ export const ReportsPage = () => {
 
   // Executive Data Reports
   const deptReportData = [
-    { name: 'Software Engineering', headcount: 54, grossCost: 215000, avgWage: 3981.48, percentage: 44.3, color: '#7C3AED' },
-    { name: 'Finance & Accounting', headcount: 24, grossCost: 92000, avgWage: 3833.33, percentage: 18.9, color: '#059669' },
+    { name: 'Software Engineering', headcount: 54, grossCost: 215000, avgWage: 3981.48, percentage: 44.3, color: '#059669' },
+    { name: 'Finance & Accounting', headcount: 24, grossCost: 92000, avgWage: 3833.33, percentage: 18.9, color: '#0284C7' },
     { name: 'Sales & Marketing', headcount: 32, grossCost: 85200, avgWage: 2662.50, percentage: 17.6, color: '#D97706' },
-    { name: 'Human Resources', headcount: 18, grossCost: 68000, avgWage: 3777.78, percentage: 14.0, color: '#3B82F6' },
-    { name: 'Executive & Admin', headcount: 14, grossCost: 25000, avgWage: 1785.71, percentage: 5.2, color: '#172554' },
+    { name: 'Human Resources', headcount: 18, grossCost: 68000, avgWage: 3777.78, percentage: 14.0, color: '#10B981' },
+    { name: 'Executive & Admin', headcount: 14, grossCost: 25000, avgWage: 1785.71, percentage: 5.2, color: '#475569' },
   ];
 
   const periodTrendData = [
@@ -91,8 +91,8 @@ export const ReportsPage = () => {
         border: '1px solid #E2E8F0',
         boxShadow: 'var(--shadow-sm)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#172554', fontWeight: 600 }}>
-          <Filter size={18} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#0F172A', fontWeight: 600 }}>
+          <Filter size={18} style={{ color: '#059669' }} />
           <span>Report Filters</span>
         </div>
 

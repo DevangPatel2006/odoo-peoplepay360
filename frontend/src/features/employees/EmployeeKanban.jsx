@@ -17,7 +17,7 @@ export const EmployeeKanban = ({ employees = [], onSelect }) => {
               width: '46px',
               height: '46px',
               borderRadius: '50%',
-              backgroundColor: '#172554',
+              background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',

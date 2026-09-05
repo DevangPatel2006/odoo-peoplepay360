@@ -89,7 +89,7 @@ export const PayslipDetail = ({ payslip, isOpen, onClose }) => {
           justifyContent: 'space-between',
           alignItems: 'flex-start',
           paddingBottom: '20px',
-          borderBottom: '3px solid #172554',
+          borderBottom: '3px solid #059669',
           marginBottom: '20px'
         }}>
           <div>
@@ -98,7 +98,7 @@ export const PayslipDetail = ({ payslip, isOpen, onClose }) => {
                 width: '36px',
                 height: '36px',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, #172554 0%, #7C3AED 100%)',
+                background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
                 color: '#FFFFFF',
                 fontWeight: '700',
                 fontSize: '1.125rem',
@@ -108,7 +108,7 @@ export const PayslipDetail = ({ payslip, isOpen, onClose }) => {
               }}>
                 P
               </div>
-              <h2 style={{ fontSize: '1.35rem', fontWeight: '700', color: '#172554' }}>PeoplePay360</h2>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: '700', color: '#0F172A' }}>PayOps</h2>
             </div>
             <p className="text-xs text-muted" style={{ marginTop: '2px' }}>
               Official Employee Payslip Statement
@@ -154,7 +154,7 @@ export const PayslipDetail = ({ payslip, isOpen, onClose }) => {
 
           <div>
             <span className="text-xs text-muted">Salary Structure:</span>
-            <div className="font-semibold" style={{ color: '#7C3AED' }}>
+            <div className="font-semibold" style={{ color: '#059669' }}>
               {structureName}
             </div>
             <div className="text-xs text-secondary">Bank Account: {bankAccount}</div>
@@ -185,18 +185,18 @@ export const PayslipDetail = ({ payslip, isOpen, onClose }) => {
 
           <div style={{ 
             padding: '16px', 
-            background: 'linear-gradient(135deg, #172554 0%, #1E3A8A 100%)', 
-            color: '#FFFFFF', 
+            background: '#ECFDF5', 
             borderRadius: '12px', 
-            boxShadow: 'var(--shadow-md)',
+            border: '1px solid #A7F3D0',
+            boxShadow: 'var(--shadow-sm)',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'center'
           }}>
-            <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            <span style={{ fontSize: '0.75rem', color: '#047857', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Net Payable Amount
             </span>
-            <div style={{ fontSize: '1.75rem', fontWeight: '800', color: '#FFFFFF', marginTop: '2px', lineHeight: 1.1 }}>
+            <div style={{ fontSize: '1.75rem', fontWeight: '800', color: '#059669', marginTop: '2px', lineHeight: 1.1 }}>
               ${netAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
           </div>
@@ -220,7 +220,7 @@ export const PayslipDetail = ({ payslip, isOpen, onClose }) => {
                 <Table headers={['Rule Code', 'Rule Name', 'Category', 'Amount ($)']}>
                   {earningsLines.map((line, idx) => (
                     <tr key={idx}>
-                      <td><span className="font-mono text-xs font-semibold" style={{ color: '#7C3AED' }}>{line.code}</span></td>
+                      <td><span className="font-mono text-xs font-semibold" style={{ color: '#059669' }}>{line.code}</span></td>
                       <td><strong style={{ color: '#0F172A' }}>{line.rule_name || line.name}</strong></td>
                       <td><Badge variant="success">{line.category}</Badge></td>
                       <td><strong className="text-success">${parseFloat(line.computed_amount ?? line.amount ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></td>
@@ -235,7 +235,7 @@ export const PayslipDetail = ({ payslip, isOpen, onClose }) => {
                 <Table headers={['Rule Code', 'Rule Name', 'Category', 'Gross Total ($)']}>
                   {grossLines.map((line, idx) => (
                     <tr key={idx} style={{ backgroundColor: '#F8FAFC', fontWeight: 600 }}>
-                      <td><span className="font-mono text-xs font-semibold" style={{ color: '#7C3AED' }}>{line.code}</span></td>
+                      <td><span className="font-mono text-xs font-semibold" style={{ color: '#059669' }}>{line.code}</span></td>
                       <td><strong style={{ color: '#0F172A' }}>{line.rule_name || line.name}</strong></td>
                       <td><Badge variant="accent">Gross</Badge></td>
                       <td><strong style={{ color: '#0F172A', fontSize: '0.95rem' }}>${parseFloat(line.computed_amount ?? line.amount ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></td>
@@ -253,7 +253,7 @@ export const PayslipDetail = ({ payslip, isOpen, onClose }) => {
                 <Table headers={['Rule Code', 'Rule Name', 'Category', 'Amount ($)']}>
                   {deductionLines.map((line, idx) => (
                     <tr key={idx}>
-                      <td><span className="font-mono text-xs font-semibold" style={{ color: '#7C3AED' }}>{line.code}</span></td>
+                      <td><span className="font-mono text-xs font-semibold" style={{ color: '#059669' }}>{line.code}</span></td>
                       <td><strong style={{ color: '#0F172A' }}>{line.rule_name || line.name}</strong></td>
                       <td><Badge variant="error">{line.category}</Badge></td>
                       <td><strong className="text-error">-${Math.abs(parseFloat(line.computed_amount ?? line.amount ?? 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</strong></td>
@@ -265,9 +265,9 @@ export const PayslipDetail = ({ payslip, isOpen, onClose }) => {
 
             <div style={{
               padding: '16px 20px',
-              backgroundColor: '#EFF6FF',
+              backgroundColor: '#F8FAFC',
               borderRadius: '10px',
-              border: '1px solid #BFDBFE',
+              border: '1px solid #E2E8F0',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center'
@@ -280,7 +280,7 @@ export const PayslipDetail = ({ payslip, isOpen, onClose }) => {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <span className="text-xs text-muted" style={{ display: 'block' }}>Net Payable Amount</span>
-                <strong style={{ fontSize: '1.5rem', color: '#172554' }}>
+                <strong style={{ fontSize: '1.5rem', color: '#059669' }}>
                   ${netAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </strong>
               </div>

@@ -4,6 +4,14 @@ const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlUser = params.get('user');
+      if (urlUser) {
+        localStorage.setItem('peoplepay_user', urlUser);
+        return JSON.parse(urlUser);
+      }
+    } catch {}
     const savedUser = localStorage.getItem('peoplepay_user');
     try {
       return savedUser ? JSON.parse(savedUser) : null;
@@ -12,7 +20,17 @@ export const AppProvider = ({ children }) => {
     }
   });
 
-  const [token, setToken] = useState(() => localStorage.getItem('peoplepay_token') || null);
+  const [token, setToken] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlToken = params.get('token');
+      if (urlToken) {
+        localStorage.setItem('peoplepay_token', urlToken);
+        return urlToken;
+      }
+    } catch {}
+    return localStorage.getItem('peoplepay_token') || null;
+  });
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,7 +60,7 @@ export const AppProvider = ({ children }) => {
     setToken(authToken);
     localStorage.setItem('peoplepay_user', JSON.stringify(userData));
     localStorage.setItem('peoplepay_token', authToken);
-    addToast('Successfully signed in to PeoplePay360', 'success');
+    addToast('Successfully signed in to PayOps', 'success');
   };
 
   const logout = () => {
@@ -50,7 +68,7 @@ export const AppProvider = ({ children }) => {
     setToken(null);
     localStorage.removeItem('peoplepay_user');
     localStorage.removeItem('peoplepay_token');
-    addToast('Signed out of PeoplePay360', 'info');
+    addToast('Signed out of PayOps', 'info');
   };
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);

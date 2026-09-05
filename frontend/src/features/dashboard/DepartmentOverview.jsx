@@ -38,24 +38,25 @@ export const DepartmentOverview = ({ data: initialData }) => {
 
   return (
     <Card
+      className="dashboard-card"
       title="Department Overview & Wage Commitments"
       subtitle={`Total Active Headcount: ${totalHeadcount} across ${departments.length} departments`}
     >
       {loading ? (
-        <div style={{ padding: '24px', textAlign: 'center' }}>
+        <div style={{ padding: '24px', textAlign: 'center', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
           <Spinner size="md" />
           <p className="text-xs text-secondary" style={{ marginTop: '6px' }}>Loading departments...</p>
         </div>
       ) : error ? (
-        <div className="text-sm text-secondary" style={{ padding: '16px', textAlign: 'center' }}>
+        <div className="text-sm text-secondary" style={{ padding: '16px', textAlign: 'center', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {error}
         </div>
       ) : departments.length === 0 ? (
-        <div className="text-sm text-secondary" style={{ padding: '16px', textAlign: 'center' }}>
+        <div className="text-sm text-secondary" style={{ padding: '16px', textAlign: 'center', flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           No department data available.
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', height: '100%', justifyContent: 'space-between' }}>
           {departments.map((dept) => {
             const wage = parseFloat(dept.total_monthly_committed_salary || 0);
             const count = parseInt(dept.headcount || 0, 10);
@@ -73,8 +74,8 @@ export const DepartmentOverview = ({ data: initialData }) => {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Building2 size={16} style={{ color: '#2563EB' }} />
-                    <strong style={{ color: '#0F172A', fontSize: '0.875rem' }}>{dept.department_name}</strong>
+                    <Building2 size={16} style={{ color: '#059669' }} />
+                    <strong style={{ color: '#12151A', fontSize: '0.875rem' }}>{dept.department_name}</strong>
                   </div>
                   <Badge variant="neutral">
                     <Users size={12} style={{ marginRight: '4px' }} />
@@ -92,7 +93,7 @@ export const DepartmentOverview = ({ data: initialData }) => {
                     style={{
                       height: '100%',
                       width: `${Math.min(100, wagePct)}%`,
-                      backgroundColor: '#2563EB',
+                      backgroundColor: '#059669',
                       borderRadius: '3px',
                       transition: 'width 300ms ease',
                     }}

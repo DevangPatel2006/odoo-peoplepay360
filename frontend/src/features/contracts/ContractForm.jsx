@@ -149,8 +149,8 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
 
       {/* Contract & Employee Selection */}
       <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#172554', fontWeight: 600 }}>
-          <FileText size={18} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#0F172A', fontWeight: 600 }}>
+          <FileText size={18} style={{ color: '#059669' }} />
           <span>1. Contract Reference & Employee</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
@@ -176,8 +176,8 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
 
       {/* Contract Duration */}
       <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#172554', fontWeight: 600 }}>
-          <Calendar size={18} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#0F172A', fontWeight: 600 }}>
+          <Calendar size={18} style={{ color: '#059669' }} />
           <span>2. Contract Duration & Dates</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
@@ -200,8 +200,8 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
 
       {/* Salary & Structure */}
       <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#172554', fontWeight: 600 }}>
-          <DollarSign size={18} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#0F172A', fontWeight: 600 }}>
+          <DollarSign size={18} style={{ color: '#059669' }} />
           <span>3. Wage & Salary Structure</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
@@ -229,8 +229,8 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
 
       {/* Working Schedule & Status */}
       <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#172554', fontWeight: 600 }}>
-          <Clock size={18} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px', color: '#0F172A', fontWeight: 600 }}>
+          <Clock size={18} style={{ color: '#059669' }} />
           <span>4. Working Schedule & Contract Status</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
