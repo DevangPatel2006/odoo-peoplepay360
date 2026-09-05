@@ -3,13 +3,33 @@ import { app, request, getAuthToken, query, closeDb } from './testHelper.js';
 describe('Contracts Integration Tests', () => {
   let adminToken;
   let employeeToken;
+  let davidEmpId;
 
   beforeAll(async () => {
     adminToken = await getAuthToken('admin@peoplepay360.com');
     employeeToken = await getAuthToken('david.engineer@peoplepay360.com');
+
+    const empRes = await query('SELECT employee_id FROM users WHERE work_email = $1', ['david.engineer@peoplepay360.com']);
+    davidEmpId = empRes.rows[0]?.employee_id;
+
+    // Ensure test running contracts exist for isolation
+    await query(`
+      INSERT INTO contracts (id, contract_number, employee_id, salary_structure_id, wage_per_month, start_date, status)
+      VALUES (1, 'CON/2026/0001', 1, 1, 8000.00, '2026-01-01', 'Running')
+      ON CONFLICT (id) DO UPDATE SET status = 'Running', employee_id = 1
+    `);
+
+    if (davidEmpId) {
+      await query(`
+        INSERT INTO contracts (id, contract_number, employee_id, salary_structure_id, wage_per_month, start_date, status)
+        VALUES (4, 'CON/2026/0004', $1, 1, 6000.00, '2026-01-01', 'Running')
+        ON CONFLICT (id) DO UPDATE SET status = 'Running', employee_id = $1
+      `, [davidEmpId]);
+    }
   });
 
   afterAll(async () => {
+    await query('DELETE FROM contracts WHERE id IN (1, 4)');
     await closeDb();
   });
 
@@ -45,7 +65,7 @@ describe('Contracts Integration Tests', () => {
   });
 
   test('Employee role cannot read another employee contract (self-scoping)', async () => {
-    // David Engineer (employee ID 4) tries to read contract 1 (belongs to Employee 1)
+    // David Engineer tries to read contract 1 (belongs to Employee 1)
     const res = await request(app)
       .get('/api/contracts/1')
       .set('Authorization', `Bearer ${employeeToken}`);
@@ -56,14 +76,13 @@ describe('Contracts Integration Tests', () => {
   });
 
   test('Employee role can read their own contract', async () => {
-    // David Engineer (employee ID 4) has contract 4
     const res = await request(app)
       .get('/api/contracts/4')
       .set('Authorization', `Bearer ${employeeToken}`);
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.data.employee_id).toBe(4);
+    expect(res.body.data.employee_id).toBe(davidEmpId);
     expect(res.body.data.is_active).toBe(true);
   });
 });

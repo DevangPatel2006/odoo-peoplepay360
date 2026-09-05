@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Badge, Button, Spinner, Alert } from '../components/ui';
-import { UserPlus, Shield, RefreshCw } from 'lucide-react';
+import { Card, Table, Badge, Button, Spinner, Alert, Modal, Select } from '../components/ui';
+import { UserPlus, Shield, RefreshCw, Edit3 } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
+import { useApp } from '../store';
 
 export const UserManagementPage = () => {
+  const { addToast } = useApp();
   const [users, setUsers] = useState([]);
+  const [availableRoles, setAvailableRoles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Modal state for editing a user's role
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedRoleId, setSelectedRoleId] = useState('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [savingRole, setSavingRole] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -24,9 +33,45 @@ export const UserManagementPage = () => {
     }
   };
 
+  const fetchRoles = async () => {
+    try {
+      const res = await axiosClient.get('/users/roles');
+      const list = Array.isArray(res.data) ? res.data : [];
+      setAvailableRoles(list);
+    } catch (err) {
+      console.error('Failed to load roles:', err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchRoles();
   }, []);
+
+  const openRoleModal = (u) => {
+    setSelectedUser(u);
+    const currentRoleId = u.roles?.[0]?.id || (availableRoles.find(r => r.name === 'Employee')?.id || '1');
+    setSelectedRoleId(String(currentRoleId));
+    setIsModalOpen(true);
+  };
+
+  const handleUpdateRole = async () => {
+    if (!selectedUser || !selectedRoleId) return;
+    setSavingRole(true);
+    try {
+      await axiosClient.put(`/users/${selectedUser.id}/roles`, {
+        role_ids: [parseInt(selectedRoleId, 10)],
+      });
+      addToast(`Updated role for ${selectedUser.work_email}`, 'success');
+      setIsModalOpen(false);
+      fetchUsers();
+    } catch (err) {
+      console.error('Failed to update role:', err);
+      addToast(err.response?.data?.error?.message || 'Failed to update user role', 'error');
+    } finally {
+      setSavingRole(false);
+    }
+  };
 
   return (
     <div>
@@ -44,7 +89,7 @@ export const UserManagementPage = () => {
 
       {error && <Alert type="error">{error}</Alert>}
 
-      <Card title="Registered System Users" subtitle="Live database users and RBAC roles (Admin, HR Manager, HR Payroll User, Employee)">
+      <Card title="Registered System Users" subtitle="Live database users and RBAC roles (Admin, HR Manager, HR Payroll Manager, HR Payroll User, Employee)">
         {loading ? (
           <div style={{ padding: '32px', textAlign: 'center' }}>
             <Spinner size="md" />
@@ -55,7 +100,7 @@ export const UserManagementPage = () => {
             No registered users found.
           </div>
         ) : (
-          <Table headers={['User', 'Email', 'Assigned Roles', 'Status', 'Last Login']}>
+          <Table headers={['User', 'Email', 'Assigned Roles', 'Status', 'Last Login', 'Actions']}>
             {users.map((u) => {
               const fullName = `${u.first_name || ''} ${u.last_name || ''}`.trim() || 'System User';
               const roles = Array.isArray(u.roles) ? u.roles : [];
@@ -102,12 +147,61 @@ export const UserManagementPage = () => {
                     </Badge>
                   </td>
                   <td><span className="text-xs text-secondary">{lastLogin}</span></td>
+                  <td>
+                    <Button 
+                      variant="outline" 
+                      size="xs" 
+                      icon={Edit3}
+                      onClick={() => openRoleModal(u)}
+                    >
+                      Change Role
+                    </Button>
+                  </td>
                 </tr>
               );
             })}
           </Table>
         )}
       </Card>
+
+      {/* Role Management Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={`Assign Role — ${selectedUser?.work_email || ''}`}
+        footer={
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <Button variant="ghost" onClick={() => setIsModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleUpdateRole} loading={savingRole}>
+              Save Role
+            </Button>
+          </div>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <p className="text-sm text-secondary">
+            Select the system role to assign to <strong>{selectedUser?.work_email}</strong>. This changes their platform permissions and accessible modules.
+          </p>
+          <div>
+            <label className="form-label" style={{ display: 'block', marginBottom: '6px', fontWeight: 600 }}>
+              System RBAC Role
+            </label>
+            <Select
+              value={selectedRoleId}
+              onChange={(e) => setSelectedRoleId(e.target.value)}
+              style={{ width: '100%' }}
+            >
+              {availableRoles.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name} — {r.description}
+                </option>
+              ))}
+            </Select>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

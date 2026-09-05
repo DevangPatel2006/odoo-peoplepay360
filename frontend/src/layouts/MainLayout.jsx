@@ -27,7 +27,6 @@ export const MainLayout = () => {
   const { 
     user, 
     logout, 
-    switchRole,
     sidebarOpen, 
     toggleSidebar, 
     mobileSidebarOpen, 
@@ -44,27 +43,32 @@ export const MainLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const userRole = user?.role || 'Admin';
+  const userRoles = Array.isArray(user?.roles) && user.roles.length > 0
+    ? user.roles
+    : (user?.role ? [user.role] : ['Employee']);
+
+  const userRole = userRoles[0] || 'Employee';
+  const isAdmin = userRoles.some((r) => String(r).toLowerCase() === 'admin');
 
   // All 7 Workflow Modules
   const allNavItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User', 'Employee'] },
-    { path: '/employees', label: 'Employees', icon: Users, roles: ['Admin', 'HR Manager', 'HR Payroll Manager'] },
-    { path: '/contracts', label: 'Contracts', icon: FileText, roles: ['Admin', 'HR Manager', 'HR Payroll Manager'] },
-    { path: '/attendance', label: 'Attendance', icon: Clock, roles: ['Admin', 'HR Manager', 'HR Payroll User', 'Employee'] },
-    { path: '/time-off', label: 'Time Off', icon: Calendar, roles: ['Admin', 'HR Manager', 'HR Payroll Manager', 'Employee'] },
+    { path: '/employees', label: 'Employees', icon: Users, roles: ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User'] },
+    { path: '/contracts', label: 'Contracts', icon: FileText, roles: ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User'] },
+    { path: '/attendance', label: 'Attendance', icon: Clock, roles: ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User', 'Employee'] },
+    { path: '/time-off', label: 'Time Off', icon: Calendar, roles: ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User', 'Employee'] },
     { path: '/payroll', label: 'Payroll', icon: DollarSign, roles: ['Admin', 'HR Payroll Manager', 'HR Payroll User'] },
     { path: '/reports', label: 'Reports', icon: BarChart3, roles: ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User', 'Employee'] },
   ];
 
   // Filter navigation items based on current active user role
-  const navItems = allNavItems.filter((item) => item.roles.includes(userRole));
+  const navItems = allNavItems.filter((item) => isAdmin || item.roles.some((r) => userRoles.includes(r)));
 
   // Secondary Bottom Navigation Links
   const bottomNavItems = [
     { path: '/user-management', label: 'Settings', icon: Settings, roles: ['Admin'] },
     { path: '/design-system', label: 'Design System', icon: Palette, roles: ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User', 'Employee'] },
-  ].filter((item) => item.roles.includes(userRole));
+  ].filter((item) => isAdmin || item.roles.some((r) => userRoles.includes(r)));
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -169,22 +173,21 @@ export const MainLayout = () => {
           </div>
 
           <div className="topbar-right">
-            {/* ROLE SWITCHER SELECTOR FOR HACKATHON DEMO */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <ShieldCheck size={16} className="text-accent" />
-              <select
-                className="select"
-                value={userRole}
-                onChange={(e) => switchRole(e.target.value)}
-                style={{ padding: '4px 28px 4px 10px', fontSize: '0.75rem', height: '32px', fontWeight: 600 }}
-                title="Switch active role for testing RBAC navigation visibility"
-              >
-                <option value="Admin">Role: Admin</option>
-                <option value="HR Manager">Role: HR Manager</option>
-                <option value="HR Payroll Manager">Role: HR Payroll Manager</option>
-                <option value="HR Payroll User">Role: HR Payroll User</option>
-                <option value="Employee">Role: Employee</option>
-              </select>
+            {/* Authenticated Role Indicator */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              backgroundColor: '#F1F5F9',
+              padding: '6px 12px',
+              borderRadius: '6px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              color: '#334155',
+              border: '1px solid #E2E8F0'
+            }}>
+              <ShieldCheck size={15} style={{ color: '#2563EB' }} />
+              <span>Role: {userRoles.join(', ') || 'Employee'}</span>
             </div>
 
             {/* Notifications Bell */}

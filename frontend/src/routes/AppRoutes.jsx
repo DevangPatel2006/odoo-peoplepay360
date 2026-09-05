@@ -29,7 +29,7 @@ export const AppRoutes = () => {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<DashboardPage />} />
           
-          <Route element={<RoleGuard allowedRoles={['Admin', 'HR Manager', 'HR Payroll Manager']} />}>
+          <Route element={<RoleGuard allowedRoles={['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User']} />}>
             <Route path="/employees" element={<EmployeeList />} />
             <Route path="/contracts" element={<ContractList />} />
           </Route>

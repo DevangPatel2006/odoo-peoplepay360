@@ -14,12 +14,14 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', requirePermission('Users', 'read'), userController.list);
+router.get('/roles', requirePermission('Users', 'read'), userController.getRoles);
 router.get('/:id', requirePermission('Users', 'read'), userController.getById);
 router.post('/', requirePermission('Users', 'create'), validate(createUserSchema), userController.create);
 router.patch('/:id', requirePermission('Users', 'update'), validate(updateUserSchema), userController.update);
 router.delete('/:id', requirePermission('Users', 'delete'), userController.remove);
 
 router.post('/:id/roles', requirePermission('Users', 'update'), validate(assignRoleSchema), userController.addRole);
+router.put('/:id/roles', requirePermission('Users', 'update'), userController.setRoles);
 router.delete('/:id/roles/:roleId', requirePermission('Users', 'update'), userController.removeRole);
 
 export default router;

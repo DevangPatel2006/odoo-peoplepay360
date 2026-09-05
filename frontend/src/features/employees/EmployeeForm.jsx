@@ -33,6 +33,7 @@ export const EmployeeForm = ({ employee, onSave, onCancel, onResetCredentials })
     working_schedule_id: employee?.working_schedule_id ? String(employee.working_schedule_id) : '',
     bank_account_number: employee?.bankAccount || employee?.bank_account_number || '',
     status: employee?.status || 'Active',
+    role_id: '1',
   });
 
   const [errors, setErrors] = useState({});
@@ -125,6 +126,10 @@ export const EmployeeForm = ({ employee, onSave, onCancel, onResetCredentials })
         bank_account_number: formData.bank_account_number ? formData.bank_account_number.trim() : null,
         status: formData.status,
       };
+
+      if (!isEditing && formData.role_id) {
+        payload.role_ids = [parseInt(formData.role_id, 10)];
+      }
 
       let res;
       if (isEditing) {
@@ -255,6 +260,20 @@ export const EmployeeForm = ({ employee, onSave, onCancel, onResetCredentials })
               { value: 'Intern', label: 'Intern' },
             ]}
           />
+          {!isEditing && (
+            <Select
+              label="System Login Role *"
+              value={formData.role_id}
+              onChange={(e) => handleChange('role_id', e.target.value)}
+              options={[
+                { value: '1', label: 'Employee (Self-service access)' },
+                { value: '2', label: 'HR Manager (Full Core HR)' },
+                { value: '3', label: 'HR Payroll User (HR + Payruns/Payslips)' },
+                { value: '4', label: 'HR Payroll Manager (HR + Salary Rules/Structures)' },
+                { value: '5', label: 'Admin (Full Superuser)' },
+              ]}
+            />
+          )}
         </div>
       </div>
 

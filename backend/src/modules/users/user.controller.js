@@ -36,6 +36,17 @@ export const removeRole = async (req, res) => {
   return ok(res, user);
 };
 
+export const setRoles = async (req, res) => {
+  const roleIds = req.body.role_ids || (req.body.role_id ? [req.body.role_id] : []);
+  const user = await userService.updateUserRoles(req.params.id, roleIds);
+  return ok(res, user);
+};
+
+export const getRoles = async (req, res) => {
+  const roles = await userService.getRoles();
+  return ok(res, roles);
+};
+
 export default {
   list,
   getById,
@@ -44,4 +55,6 @@ export default {
   remove,
   addRole,
   removeRole,
+  setRoles,
+  getRoles,
 };

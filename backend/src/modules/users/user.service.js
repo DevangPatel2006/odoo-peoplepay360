@@ -77,6 +77,16 @@ export const removeUserRole = async (userId, roleId) => {
   return userModel.findById(userId);
 };
 
+export const updateUserRoles = async (userId, roleIds) => {
+  await getUserById(userId);
+  await userModel.setUserRoles(userId, Array.isArray(roleIds) ? roleIds : [roleIds]);
+  return userModel.findById(userId);
+};
+
+export const getRoles = async () => {
+  return userModel.getAllRoles();
+};
+
 export default {
   listUsers,
   getUserById,
@@ -85,4 +95,6 @@ export default {
   deleteUser,
   assignUserRole,
   removeUserRole,
+  updateUserRoles,
+  getRoles,
 };

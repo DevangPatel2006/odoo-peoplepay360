@@ -36,12 +36,6 @@ export const AppProvider = ({ children }) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const switchRole = (newRole) => {
-    const updatedUser = { ...user, role: newRole };
-    setUser(updatedUser);
-    localStorage.setItem('peoplepay_user', JSON.stringify(updatedUser));
-    addToast(`Switched active role to ${newRole}`, 'info');
-  };
 
   const login = (userData, authToken) => {
     setUser(userData);
@@ -68,7 +62,6 @@ export const AppProvider = ({ children }) => {
       token,
       login,
       logout,
-      switchRole,
       sidebarOpen,
       setSidebarOpen,
       toggleSidebar,

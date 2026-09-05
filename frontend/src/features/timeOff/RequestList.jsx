@@ -35,7 +35,7 @@ export const RequestList = ({ onRefreshBalances }) => {
     setError(null);
     try {
       const response = await axiosClient.get('/time-off/requests');
-      const list = response.data?.data || [];
+      const list = Array.isArray(response.data) ? response.data : (response.data?.data || []);
       setRequests(list);
     } catch (err) {
       console.error('Failed to load leave requests:', err);

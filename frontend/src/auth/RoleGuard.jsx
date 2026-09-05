@@ -10,8 +10,15 @@ export const RoleGuard = ({ allowedRoles }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && allowedRoles.length > 0 && user) {
-    const hasPermission = allowedRoles.includes(user.role) || user.role === 'Admin';
+  if (allowedRoles && allowedRoles.length > 0) {
+    if (!user) {
+      return <Navigate to="/login" replace />;
+    }
+    const userRoles = Array.isArray(user.roles) && user.roles.length > 0
+      ? user.roles
+      : (user.role ? [user.role] : []);
+    const isAdmin = userRoles.some((r) => String(r).toLowerCase() === 'admin');
+    const hasPermission = isAdmin || userRoles.some((r) => allowedRoles.includes(r));
     if (!hasPermission) {
       return <AccessDenied requiredRole={allowedRoles.join(' / ')} />;
     }

@@ -99,9 +99,21 @@ export const removeRole = async (userId, roleId) => {
   await query('DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2', [userId, roleId]);
 };
 
+export const setUserRoles = async (userId, roleIds) => {
+  await query('DELETE FROM user_roles WHERE user_id = $1', [userId]);
+  for (const roleId of roleIds) {
+    await query('INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING', [userId, roleId]);
+  }
+};
+
 export const findRoleIdByName = async (roleName) => {
   const res = await query('SELECT id FROM roles WHERE name = $1', [roleName]);
   return res.rows[0]?.id || null;
+};
+
+export const getAllRoles = async () => {
+  const res = await query('SELECT id, name, description FROM roles ORDER BY id ASC');
+  return res.rows;
 };
 
 export default {
@@ -113,4 +125,5 @@ export default {
   addRole,
   removeRole,
   findRoleIdByName,
+  getAllRoles,
 };

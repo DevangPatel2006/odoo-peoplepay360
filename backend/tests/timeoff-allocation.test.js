@@ -5,7 +5,9 @@ describe('Time Off Allocation & Requests Integration Tests', () => {
   let employeeToken;
   let testTypeRequiresAllocId;
   let testAllocationId;
+  let adminAllocationId;
   let testRequestId;
+  let testEmpId;
 
   beforeAll(async () => {
     hrToken = await getAuthToken('hrmanager@peoplepay360.com');
@@ -19,13 +21,25 @@ describe('Time Off Allocation & Requests Integration Tests', () => {
     `);
     testTypeRequiresAllocId = typeRes.rows[0].id;
 
-    // 2. Create an Approved allocation of 15 days for employee 4 (David Engineer)
+    // 2. Resolve test employee id for david.engineer
+    const empRes = await query('SELECT employee_id FROM users WHERE work_email = $1', ['david.engineer@peoplepay360.com']);
+    testEmpId = empRes.rows[0]?.employee_id;
+
+    // 3. Create an Approved allocation of 15 days for the test employee
     const allocRes = await query(`
       INSERT INTO time_off_allocations (employee_id, time_off_type_id, allocated_amount, taken_amount, status, validity_start, validity_end)
-      VALUES (4, $1, 15.00, 0.00, 'Approved', '2026-01-01', '2026-12-31')
+      VALUES ($1, $2, 15.00, 0.00, 'Approved', '2026-01-01', '2026-12-31')
+      RETURNING id
+    `, [testEmpId, testTypeRequiresAllocId]);
+    testAllocationId = allocRes.rows[0].id;
+
+    // 4. Create an allocation belonging to Admin (employee 1) to test non-self access
+    const adminAllocRes = await query(`
+      INSERT INTO time_off_allocations (employee_id, time_off_type_id, allocated_amount, taken_amount, status, validity_start, validity_end)
+      VALUES (1, $1, 20.00, 0.00, 'Approved', '2026-01-01', '2026-12-31')
       RETURNING id
     `, [testTypeRequiresAllocId]);
-    testAllocationId = allocRes.rows[0].id;
+    adminAllocationId = adminAllocRes.rows[0].id;
   });
 
   afterAll(async () => {
@@ -34,6 +48,9 @@ describe('Time Off Allocation & Requests Integration Tests', () => {
     }
     if (testAllocationId) {
       await query('DELETE FROM time_off_allocations WHERE id = $1', [testAllocationId]);
+    }
+    if (adminAllocationId) {
+      await query('DELETE FROM time_off_allocations WHERE id = $1', [adminAllocationId]);
     }
     if (testTypeRequiresAllocId) {
       await query('DELETE FROM time_off_types WHERE id = $1', [testTypeRequiresAllocId]);
@@ -73,9 +90,9 @@ describe('Time Off Allocation & Requests Integration Tests', () => {
     // Create a request with no allocation_id
     const unallocatedReqRes = await query(`
       INSERT INTO time_off_requests (employee_id, time_off_type_id, start_date, end_date, duration, status, allocation_id)
-      VALUES (4, $1, '2026-06-01', '2026-06-02', 2.00, 'To Approve', NULL)
+      VALUES ($1, $2, '2026-06-01', '2026-06-02', 2.00, 'To Approve', NULL)
       RETURNING id
-    `, [testTypeRequiresAllocId]);
+    `, [testEmpId, testTypeRequiresAllocId]);
     const unallocatedId = unallocatedReqRes.rows[0].id;
 
     const res = await request(app)
@@ -130,9 +147,9 @@ describe('Time Off Allocation & Requests Integration Tests', () => {
     // Current remaining is 12.00. Create a request for 20.00 days
     const overReqRes = await query(`
       INSERT INTO time_off_requests (employee_id, time_off_type_id, start_date, end_date, duration, status, allocation_id)
-      VALUES (4, $1, '2026-07-01', '2026-07-20', 20.00, 'To Approve', $2)
+      VALUES ($1, $2, '2026-07-01', '2026-07-20', 20.00, 'To Approve', $3)
       RETURNING id
-    `, [testTypeRequiresAllocId, testAllocationId]);
+    `, [testEmpId, testTypeRequiresAllocId, testAllocationId]);
     const overReqId = overReqRes.rows[0].id;
 
     const res = await request(app)
@@ -147,9 +164,9 @@ describe('Time Off Allocation & Requests Integration Tests', () => {
   });
 
   test('Employee cannot read another employee allocations (self-scoping)', async () => {
-    // David Engineer (employee 4) tries to read allocation 1 (belongs to employee 1)
+    // David Engineer tries to read Admin allocation (belongs to employee 1)
     const res = await request(app)
-      .get('/api/time-off/allocations/1')
+      .get(`/api/time-off/allocations/${adminAllocationId}`)
       .set('Authorization', `Bearer ${employeeToken}`);
 
     expect(res.status).toBe(403);
