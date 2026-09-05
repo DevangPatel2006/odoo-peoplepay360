@@ -252,6 +252,7 @@ BEGIN
     DELETE FROM time_off_allocations WHERE id IN (v_alloc1_id, v_alloc2_id);
     DELETE FROM time_off_types WHERE id = v_test_type_id;
     DELETE FROM employees WHERE id = v_test_emp_id;
+    DROP FUNCTION IF EXISTS get_applicable_contract(INT, DATE, DATE);
 
     RAISE NOTICE '------------------------------------------------------------';
     RAISE NOTICE 'ALL MIGRATION 003 BUGFIX CHECKS PASSED SUCCESSFULLY! ✅';
