@@ -1,4 +1,18 @@
 {
-  "name": "peoplepay360-monorepo",
-  "private": true
+  "name": "odoo-peoplepay360",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Enterprise HR & Payroll Management Platform",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev:backend": "npm --workspace=backend run dev",
+    "start:backend": "npm --workspace=backend start",
+    "test:backend": "npm --workspace=backend test"
+  },
+  "keywords": ["hrm", "payroll", "odoo", "enterprise"],
+  "author": "",
+  "license": "MIT"
 }
