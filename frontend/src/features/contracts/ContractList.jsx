@@ -94,12 +94,30 @@ export const ContractList = () => {
     },
   ];
 
+  const mapContract = (c) => ({
+    ...c,
+    id: `CNT-${c.id}`,
+    dbId: c.id,
+    contractName: c.contract_name || c.contractName || `CNT-${c.id}`,
+    employeeName: c.employeeName || `${c.employee_first_name || ''} ${c.employee_last_name || ''}`.trim() || 'Employee',
+    employeeId: c.employeeId || c.employee_code || `EMP-${c.employee_id}`,
+    startDate: c.startDate || (c.date_start ? String(c.date_start).split('T')[0] : ''),
+    endDate: c.endDate || (c.date_end ? String(c.date_end).split('T')[0] : 'Ongoing'),
+    wage: c.wage || c.wage_per_month || '0',
+    formattedWage: c.formattedWage || `$${parseFloat(c.wage_per_month || c.wage || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} / mo`,
+    salaryStructure: c.salaryStructure || c.salary_structure_name || 'Standard Salary Structure',
+    workingSchedule: c.workingSchedule || c.working_schedule_name || 'Standard 40h/week',
+    status: c.status || 'Draft',
+    isCurrentActive: c.status === 'Running',
+  });
+
   const fetchContracts = async () => {
     setLoading(true);
     try {
       const response = await axiosClient.get('/contracts');
-      if (response.data && Array.isArray(response.data)) {
-        setContracts(response.data);
+      const list = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      if (list.length > 0) {
+        setContracts(list.map(mapContract));
       } else {
         setContracts(initialContracts);
       }

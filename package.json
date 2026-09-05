@@ -8,11 +8,22 @@
     "frontend"
   ],
   "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,magenta \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:backend": "npm --workspace=backend run dev",
+    "dev:frontend": "npm --workspace=frontend run dev",
+    "build:frontend": "npm --workspace=frontend run build",
     "start:backend": "npm --workspace=backend start",
     "test:backend": "npm --workspace=backend test"
   },
-  "keywords": ["hrm", "payroll", "odoo", "enterprise"],
+  "keywords": [
+    "hrm",
+    "payroll",
+    "odoo",
+    "enterprise"
+  ],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+  }
 }

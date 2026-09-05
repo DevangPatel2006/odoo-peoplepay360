@@ -61,6 +61,7 @@ router.use('/salary-structures', structureRoutes);
 router.use('/salary-rules', ruleRoutes);
 router.use('/payruns', payrunRoutes);
 router.use('/payslips', payslipRoutes);
+router.use('/payroll/payslips', payslipRoutes);
 router.use('/warnings', warningRoutes);
 
 // Dashboard

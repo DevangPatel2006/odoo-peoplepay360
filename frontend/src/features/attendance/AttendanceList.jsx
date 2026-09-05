@@ -92,12 +92,28 @@ export const AttendanceList = () => {
     },
   ];
 
+  const mapAttendance = (a) => ({
+    ...a,
+    id: `ATT-${a.id}`,
+    dbId: a.id,
+    employeeName: a.employeeName || `${a.employee_first_name || ''} ${a.employee_last_name || ''}`.trim() || 'Employee',
+    employeeId: a.employeeId || a.employee_code || `EMP-${a.employee_id}`,
+    date: a.date || (a.attendance_date ? String(a.attendance_date).split('T')[0] : ''),
+    checkIn: a.checkIn || (a.check_in ? new Date(a.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'),
+    checkOut: a.checkOut || (a.check_out ? new Date(a.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Missing'),
+    workedHours: a.workedHours || (a.worked_hours != null ? `${a.worked_hours} hrs` : '0.0 hrs'),
+    status: a.status || 'Present',
+    isAbnormal: a.is_abnormal ?? false,
+    anomalyReason: a.anomaly_reason || '',
+  });
+
   const fetchAttendances = async () => {
     setLoading(true);
     try {
       const response = await axiosClient.get('/attendance');
-      if (response.data && Array.isArray(response.data)) {
-        setAttendances(response.data);
+      const list = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      if (list.length > 0) {
+        setAttendances(list.map(mapAttendance));
       } else {
         setAttendances(initialAttendances);
       }

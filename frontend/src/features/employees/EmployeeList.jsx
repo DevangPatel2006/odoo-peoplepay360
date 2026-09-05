@@ -144,12 +144,32 @@ export const EmployeeList = () => {
     },
   ];
 
+  const mapEmployee = (e) => ({
+    ...e,
+    id: e.employee_code || e.employeeId || `EMP-${e.id}`,
+    dbId: e.id,
+    name: e.name || `${e.first_name || ''} ${e.last_name || ''}`.trim() || 'Employee',
+    firstName: e.firstName || e.first_name || '',
+    lastName: e.lastName || e.last_name || '',
+    email: e.email || e.work_email || '',
+    department: e.department || e.department_name || 'General Management',
+    position: e.position || e.job_position_title || 'Specialist',
+    employeeType: e.employeeType || e.employee_type || 'Full-time',
+    status: e.status || 'Active',
+    manager: e.manager || (e.manager_first_name ? `${e.manager_first_name} ${e.manager_last_name || ''}`.trim() : 'None'),
+    hireDate: e.hireDate || (e.date_of_joining ? String(e.date_of_joining).split('T')[0] : ''),
+    schedule: e.schedule || e.working_schedule_name || 'Standard 40h/week',
+    bankAccount: e.bankAccount || e.bank_account_number || '',
+    phone: e.phone || e.personal_phone || '',
+  });
+
   const fetchEmployees = async () => {
     setLoading(true);
     try {
       const response = await axiosClient.get('/employees');
-      if (response.data && Array.isArray(response.data)) {
-        setEmployees(response.data);
+      const list = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      if (list.length > 0) {
+        setEmployees(list.map(mapEmployee));
       } else {
         setEmployees(initialEmployees);
       }

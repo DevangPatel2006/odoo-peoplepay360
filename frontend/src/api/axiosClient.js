@@ -19,9 +19,18 @@ axiosClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for token expiry or error handling
+// Response interceptor for unpacking envelope, token expiry, and error handling
 axiosClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.data && typeof response.data === 'object' && response.data.success === true && 'data' in response.data) {
+      return {
+        ...response,
+        data: response.data.data,
+        meta: response.data.meta,
+      };
+    }
+    return response;
+  },
   (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('peoplepay_token');
