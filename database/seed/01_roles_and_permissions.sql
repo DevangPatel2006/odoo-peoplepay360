@@ -24,7 +24,8 @@ INSERT INTO role_permissions (role_id, module, can_create, can_read, can_update,
 (1, 'Employees', false, true, false, false, false),
 (1, 'Contracts', false, true, false, false, false),
 (1, 'Attendance', true, true, false, false, false),
-(1, 'TimeOff', true, true, false, false, false)
+(1, 'TimeOff', true, true, false, false, false),
+(1, 'Payslips', false, true, false, false, false)
 ON CONFLICT (role_id, module) DO UPDATE SET 
 can_create = EXCLUDED.can_create, can_read = EXCLUDED.can_read, can_update = EXCLUDED.can_update, can_delete = EXCLUDED.can_delete, can_approve = EXCLUDED.can_approve;
 

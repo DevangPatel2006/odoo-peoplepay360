@@ -159,16 +159,16 @@ BEGIN
                 BEGIN
                     v_expr := v_rule.formula_expression;
                     v_expr := REGEXP_REPLACE(v_expr, '^result\s*=\s*', '', 'i');
-                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]BASIC[''"]\s*\]', v_basic::text, 'gi');
-                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]ALLOWANCE[''"]\s*\]', (v_gross - v_basic)::text, 'gi');
-                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]GROSS[''"]\s*\]', v_gross::text, 'gi');
-                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]DEDUCTION[''"]\s*\]', (v_gross - v_net)::text, 'gi');
-                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]NET[''"]\s*\]', v_net::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]BASIC[''"]\s*\]', COALESCE(v_basic, 0.00)::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]ALLOWANCE[''"]\s*\]', (COALESCE(v_gross, 0.00) - COALESCE(v_basic, 0.00))::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]GROSS[''"]\s*\]', COALESCE(v_gross, 0.00)::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]DEDUCTION[''"]\s*\]', (COALESCE(v_gross, 0.00) - COALESCE(v_net, 0.00))::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]NET[''"]\s*\]', COALESCE(v_net, 0.00)::text, 'gi');
                     
-                    v_expr := REGEXP_REPLACE(v_expr, '\bBASIC\b', v_basic::text, 'gi');
-                    v_expr := REGEXP_REPLACE(v_expr, '\bGROSS\b', v_gross::text, 'gi');
-                    v_expr := REGEXP_REPLACE(v_expr, '\bNET\b', v_net::text, 'gi');
-                    v_expr := REGEXP_REPLACE(v_expr, '\bWAGE\b', v_wage::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, '\bBASIC\b', COALESCE(v_basic, 0.00)::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, '\bGROSS\b', COALESCE(v_gross, 0.00)::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, '\bNET\b', COALESCE(v_net, 0.00)::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, '\bWAGE\b', COALESCE(v_wage, 0.00)::text, 'gi');
                     v_expr := REGEXP_REPLACE(v_expr, '\bWORKED_DAYS\b', COALESCE(v_payslip.worked_days, 0)::text, 'gi');
                     IF v_expr !~ '^[0-9\.\s\+\-\*\/\(\)]+$' THEN
                         RAISE EXCEPTION 'Unsafe or invalid formula expression after substitution: %', v_expr;

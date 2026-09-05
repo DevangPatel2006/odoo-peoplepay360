@@ -7,7 +7,7 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get('/', dashboardController.getDashboardSummary);
+router.get('/', requirePermission('Employees', 'read'), dashboardController.getDashboardSummary);
 router.get('/kpis', requirePermission('Employees', 'read'), dashboardController.getKpis);
 router.get('/salary-cost-by-department', requirePermission('Payslips', 'read'), dashboardController.getSalaryCostByDepartment);
 router.get('/monthly-trend', requirePermission('Payslips', 'read'), dashboardController.getMonthlyTrend);

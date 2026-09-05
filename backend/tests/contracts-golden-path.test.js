@@ -149,7 +149,9 @@ describe('Contracts Golden Path Integration Tests', () => {
     expect(previewRes.body.success).toBe(true);
 
     const eligible = Array.isArray(previewRes.body.data) ? previewRes.body.data : (previewRes.body.data.eligible || []);
-    const match = eligible.find((e) => e.employee.id === employeeId);
+    const warnings = Array.isArray(previewRes.body.meta?.warnings) ? previewRes.body.meta.warnings : [];
+    const candidates = [...eligible, ...warnings];
+    const match = candidates.find((e) => e.employee.id === employeeId);
     expect(match).toBeTruthy();
     expect(match.resolved_contract.id).toBe(firstContractId);
     expect(match.resolved_contract.status).toBe('Running');

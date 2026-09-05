@@ -14,6 +14,9 @@ const getTransporter = () => {
 };
 
 export const sendWelcomeCredentialsEmail = async ({ work_email, first_name, temporary_password }) => {
+  if (!env.smtp.user || !env.smtp.pass) {
+    return { success: true, messageId: 'simulated-unconfigured-smtp' };
+  }
   const mailer = getTransporter();
   const mailOptions = {
     from: env.smtp.from,

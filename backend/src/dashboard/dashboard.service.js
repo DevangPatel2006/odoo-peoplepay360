@@ -197,8 +197,51 @@ export const getAttendanceOverview = async (companyId, { period_start, period_en
 };
 
 export const getTimeOffOverview = async (companyId = 1, { period_start, period_end, department_id, employee_type } = {}) => {
-  const sql = 'SELECT * FROM v_time_off_overview WHERE company_id = $1 ORDER BY time_off_type_name ASC';
-  const res = await query(sql, [companyId]);
+  if (!period_start && !period_end && !department_id && !employee_type) {
+    const sql = 'SELECT * FROM v_time_off_overview WHERE company_id = $1 ORDER BY time_off_type_name ASC';
+    const res = await query(sql, [companyId]);
+    return res.rows;
+  }
+
+  const conditions = ['e.company_id = $1'];
+  const values = [companyId];
+  let idx = 2;
+
+  if (department_id) {
+    conditions.push(`e.department_id = $${idx++}`);
+    values.push(parseInt(department_id, 10));
+  }
+  if (employee_type) {
+    conditions.push(`e.employee_type = $${idx++}`);
+    values.push(employee_type);
+  }
+  if (period_start) {
+    conditions.push(`tr.start_date >= $${idx++}`);
+    values.push(period_start);
+  }
+  if (period_end) {
+    conditions.push(`tr.end_date <= $${idx++}`);
+    values.push(period_end);
+  }
+
+  const sql = `
+    SELECT
+      tot.id AS time_off_type_id,
+      tot.name AS time_off_type_name,
+      tot.unit,
+      $1::int AS company_id,
+      COUNT(tr.id) AS total_requests_count,
+      COALESCE(SUM(CASE WHEN tr.status = 'Approved' THEN tr.duration ELSE 0 END), 0.00) AS approved_amount,
+      COALESCE(SUM(CASE WHEN tr.status = 'To Approve' THEN tr.duration ELSE 0 END), 0.00) AS pending_amount
+    FROM time_off_types tot
+    LEFT JOIN time_off_requests tr ON tr.time_off_type_id = tot.id
+    LEFT JOIN employees e ON tr.employee_id = e.id
+    WHERE ${conditions.join(' AND ')}
+    GROUP BY tot.id, tot.name, tot.unit
+    ORDER BY tot.name ASC
+  `;
+
+  const res = await query(sql, values);
   return res.rows;
 };
 
