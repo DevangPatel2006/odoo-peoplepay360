@@ -32,20 +32,36 @@ export const AttendanceList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  const mapAttendance = (a) => ({
-    ...a,
-    id: `ATT-${a.id}`,
-    dbId: a.id,
-    employeeName: a.employeeName || `${a.employee_first_name || ''} ${a.employee_last_name || ''}`.trim() || 'Employee',
-    employeeId: a.employeeId || a.employee_code || `EMP-${a.employee_id}`,
-    date: a.date || (a.attendance_date ? String(a.attendance_date).split('T')[0] : ''),
-    checkIn: a.checkIn || (a.check_in ? new Date(a.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'),
-    checkOut: a.checkOut || (a.check_out ? new Date(a.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (a.check_in ? 'In Progress' : 'Missing')),
-    workedHours: a.workedHours || (a.worked_hours != null ? `${a.worked_hours} hrs` : '0.0 hrs'),
-    status: a.status || 'Present',
-    isAbnormal: a.is_abnormal ?? false,
-    anomalyReason: a.anomaly_reason || '',
-  });
+  const mapAttendance = (a) => {
+    // Derive anomaly flags from existing columns — no DB changes needed.
+    // is_abnormal / anomaly_reason don't exist in the schema; we derive them here.
+    const missingCheckout = a.check_in_at && !a.check_out_at;
+    const isLate = a.status === 'Late';
+    const isAbnormal = missingCheckout || isLate;
+    const anomalyReason = missingCheckout
+      ? 'Missing check-out'
+      : isLate
+        ? 'Late arrival'
+        : '';
+
+    return {
+      ...a,
+      id: `ATT-${a.id}`,
+      dbId: a.id,
+      employeeName: a.employeeName || `${a.employee_first_name || ''} ${a.employee_last_name || ''}`.trim() || 'Employee',
+      employeeId: a.employeeId || a.employee_code || `EMP-${a.employee_id}`,
+      date: a.date || (a.attendance_date ? String(a.attendance_date).split('T')[0] : ''),
+      // Fix: use real column names check_in_at / check_out_at (not check_in / check_out)
+      checkIn: a.check_in_at ? new Date(a.check_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—',
+      checkOut: a.check_out_at
+        ? new Date(a.check_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : (a.check_in_at ? 'In Progress' : '—'),
+      workedHours: a.worked_hours != null ? `${a.worked_hours} hrs` : '0.00 hrs',
+      status: a.status || 'Present',
+      isAbnormal,
+      anomalyReason,
+    };
+  };
 
   const fetchAttendances = async () => {
     setLoading(true);
@@ -80,8 +96,8 @@ export const AttendanceList = () => {
   const totalPages = Math.ceil(filteredAttendances.length / itemsPerPage) || 1;
   const paginatedAttendances = filteredAttendances.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const missingCheckoutCount = attendances.filter(a => a.status === 'Missing Check-Out').length;
-  const disputedCount = attendances.filter(a => a.status === 'Disputed').length;
+  const missingCheckoutCount = attendances.filter(a => a.isAbnormal && a.anomalyReason === 'Missing check-out').length;
+  const lateCount = attendances.filter(a => a.status === 'Late').length;
 
   const handleSaveAttendance = () => {
     fetchAttendances();
@@ -102,14 +118,14 @@ export const AttendanceList = () => {
       </div>
 
       {/* ANOMALY WARNING BANNER IF MISSING CHECKOUTS */}
-      {(missingCheckoutCount > 0 || disputedCount > 0) && (
+      {(missingCheckoutCount > 0 || lateCount > 0) && (
         <Alert type="warning" title="Attendance Anomaly Alerts">
-          There are <strong>{missingCheckoutCount} missing check-outs</strong> and <strong>{disputedCount} disputed entries</strong> requiring HR manager review.
+          There are <strong>{missingCheckoutCount} missing check-outs</strong> and <strong>{lateCount} late arrivals</strong> requiring HR manager review.
         </Alert>
       )}
 
       {/* QUICK CHECK-IN / CHECK-OUT TERMINAL WIDGET */}
-      <AttendanceWidget />
+      <AttendanceWidget onRefresh={fetchAttendances} />
 
       {/* FILTER & SEARCH BAR */}
       <div style={{
@@ -152,9 +168,9 @@ export const AttendanceList = () => {
             style={{ width: '170px' }}
           >
             <option value="ALL">All Statuses</option>
-            <option value="Present">Present (Emerald)</option>
-            <option value="Disputed">Disputed (Amber)</option>
-            <option value="Missing Check-Out">Missing Check-Out (Rose)</option>
+            <option value="Present">Present</option>
+            <option value="Absent">Absent</option>
+            <option value="Late">Late</option>
             <option value="On Leave">On Leave</option>
           </Select>
 
@@ -184,14 +200,15 @@ export const AttendanceList = () => {
         <Table headers={['Employee', 'Date', 'Check In', 'Check Out', 'Worked Hours', 'Status', 'Actions']}>
           {paginatedAttendances.map((att) => {
             const isPresent = att.status === 'Present';
-            const isDisputed = att.status === 'Disputed';
-            const isMissing = att.status === 'Missing Check-Out';
+            const isLate = att.status === 'Late';
+            const isAbsent = att.status === 'Absent';
+            const hasMissingCheckout = att.isAbnormal && att.anomalyReason === 'Missing check-out';
 
             return (
               <tr 
                 key={att.id}
                 style={{
-                  backgroundColor: isMissing ? '#FFF1F2' : isDisputed ? '#FEF3C7' : '#FFFFFF'
+                  backgroundColor: hasMissingCheckout ? '#FFF1F2' : isLate ? '#FEF3C7' : '#FFFFFF'
                 }}
               >
                 <td>
@@ -201,7 +218,7 @@ export const AttendanceList = () => {
                 <td><span className="font-mono text-sm">{att.date}</span></td>
                 <td><span className="font-medium text-sm">{att.checkIn}</span></td>
                 <td>
-                  <span className={`font-medium text-sm ${isMissing ? 'text-error font-bold' : ''}`}>
+                  <span className={`font-medium text-sm ${hasMissingCheckout ? 'text-error font-bold' : ''}`}>
                     {att.checkOut}
                   </span>
                 </td>
@@ -210,9 +227,9 @@ export const AttendanceList = () => {
                   <strong style={{ color: '#172554' }}>{att.workedHours}</strong>
                 </td>
                 <td>
-                  {/* Color logic: Normal -> Emerald, Warning -> Amber, Error -> Rose */}
+                  {/* Color logic: Present → Emerald, Late → Amber, Absent → Error, On Leave → Neutral */}
                   <Badge 
-                    variant={isPresent ? 'success' : isDisputed ? 'warning' : isMissing ? 'error' : 'neutral'}
+                    variant={isPresent ? 'success' : isLate ? 'warning' : isAbsent ? 'error' : 'neutral'}
                     dot
                   >
                     {att.status}

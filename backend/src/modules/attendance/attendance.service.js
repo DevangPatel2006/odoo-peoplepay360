@@ -74,13 +74,17 @@ export const checkIn = async (user, data = {}) => {
 
   const now = new Date().toISOString();
 
-  return attendanceModel.create({
+  const created = await attendanceModel.create({
     employee_id: targetEmployeeId,
     attendance_date: today,
     check_in_at: now,
     status: 'Present',
     notes: data.notes || null,
   });
+
+  // Re-fetch with full joins (employee name, department, corrected_by_email)
+  // so the API response shape is consistent with GET /attendance/:id
+  return attendanceModel.findById(created.id, user.companyId);
 };
 
 export const checkOut = async (user, data = {}) => {
@@ -104,10 +108,14 @@ export const checkOut = async (user, data = {}) => {
 
   const now = new Date().toISOString();
 
-  return attendanceModel.update(existing.id, {
+  await attendanceModel.update(existing.id, {
     check_out_at: now,
     notes: data.notes ? (existing.notes ? `${existing.notes} | ${data.notes}` : data.notes) : existing.notes,
   });
+
+  // Re-fetch with full joins so worked_hours (generated column) and
+  // employee/department fields are included in the response
+  return attendanceModel.findById(existing.id, user.companyId);
 };
 
 export const createAttendance = async (user, data) => {

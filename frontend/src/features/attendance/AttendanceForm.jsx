@@ -14,13 +14,29 @@ export const AttendanceForm = ({ attendance, onSave, onCancel, userRole = 'admin
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState('');
 
-  const [formData, setFormData] = useState({
-    employee_id: attendance?.employee_id ? String(attendance.employee_id) : '',
-    attendance_date: attendance?.date || new Date().toISOString().split('T')[0],
-    check_in_time: attendance?.checkIn && attendance.checkIn !== '—' ? attendance.checkIn : '09:00',
-    check_out_time: attendance?.checkOut && attendance.checkOut !== 'Missing' && attendance.checkOut !== '—' ? attendance.checkOut : '17:00',
-    status: attendance?.status === 'Missing Check-Out' ? 'Present' : (attendance?.status || 'Present'),
-    notes: attendance?.reason || attendance?.notes || '',
+  const [formData, setFormData] = useState(() => {
+    // Derive initial check-in/check-out times from real backend column names
+    let initCheckIn = '09:00';
+    let initCheckOut = '17:00';
+    if (attendance?.check_in_at) {
+      try { initCheckIn = new Date(attendance.check_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }); } catch (e) { /* fallback */ }
+    } else if (attendance?.checkIn && attendance.checkIn !== '—') {
+      initCheckIn = attendance.checkIn;
+    }
+    if (attendance?.check_out_at) {
+      try { initCheckOut = new Date(attendance.check_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }); } catch (e) { /* fallback */ }
+    } else if (attendance?.checkOut && attendance.checkOut !== 'In Progress' && attendance.checkOut !== '—') {
+      initCheckOut = attendance.checkOut;
+    }
+
+    return {
+      employee_id: attendance?.employee_id ? String(attendance.employee_id) : '',
+      attendance_date: attendance?.date || (attendance?.attendance_date ? String(attendance.attendance_date).split('T')[0] : new Date().toISOString().split('T')[0]),
+      check_in_time: initCheckIn,
+      check_out_time: initCheckOut,
+      status: attendance?.status || 'Present',
+      notes: attendance?.notes || '',
+    };
   });
 
   const [errors, setErrors] = useState({});
@@ -173,9 +189,7 @@ export const AttendanceForm = ({ attendance, onSave, onCancel, userRole = 'admin
           { value: 'Present', label: 'Present' },
           { value: 'Late', label: 'Late' },
           { value: 'Absent', label: 'Absent' },
-          { value: 'Half Day', label: 'Half Day' },
           { value: 'On Leave', label: 'On Leave' },
-          { value: 'Disputed', label: 'Disputed' },
         ]}
       />
 

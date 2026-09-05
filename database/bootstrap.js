@@ -36,7 +36,36 @@ const sqlFiles = [
   'seed/07_demo_users.sql',
 ];
 
+async function ensureDatabaseExists() {
+  const targetDb = process.env.PGDATABASE || 'peoplepay360';
+  const initClient = new Client({
+    host: process.env.PGHOST || 'localhost',
+    port: parseInt(process.env.PGPORT, 10) || 5432,
+    database: 'postgres',
+    user: process.env.PGUSER || 'postgres',
+    password: process.env.PGPASSWORD || 'postgres',
+  });
+
+  try {
+    await initClient.connect();
+    const res = await initClient.query(`SELECT 1 FROM pg_database WHERE datname = $1`, [targetDb]);
+    if (res.rowCount === 0) {
+      console.log(`[db:bootstrap] Database '${targetDb}' does not exist. Creating...`);
+      await initClient.query(`CREATE DATABASE "${targetDb}"`);
+      console.log(`[db:bootstrap] Database '${targetDb}' created successfully.`);
+    } else {
+      console.log(`[db:bootstrap] Database '${targetDb}' verified.`);
+    }
+  } catch (err) {
+    console.warn(`[db:bootstrap] Note on database verification: ${err.message}`);
+  } finally {
+    try { await initClient.end(); } catch (e) {}
+  }
+}
+
 async function bootstrap() {
+  await ensureDatabaseExists();
+
   console.log('[db:bootstrap] Connecting to database:', {
     host: client.host,
     port: client.port,
