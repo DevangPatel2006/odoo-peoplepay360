@@ -169,6 +169,7 @@ BEGIN
                     v_expr := REGEXP_REPLACE(v_expr, '\bGROSS\b', v_gross::text, 'gi');
                     v_expr := REGEXP_REPLACE(v_expr, '\bNET\b', v_net::text, 'gi');
                     v_expr := REGEXP_REPLACE(v_expr, '\bWAGE\b', v_wage::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, '\bWORKED_DAYS\b', COALESCE(v_payslip.worked_days, 0)::text, 'gi');
                     IF v_expr !~ '^[0-9\.\s\+\-\*\/\(\)]+$' THEN
                         RAISE EXCEPTION 'Unsafe or invalid formula expression after substitution: %', v_expr;
                     END IF;
