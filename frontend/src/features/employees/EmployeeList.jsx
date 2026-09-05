@@ -15,6 +15,7 @@ import {
 import { EmployeeForm } from './EmployeeForm';
 import { EmployeeDetailModal } from './EmployeeDetailModal';
 import { EmployeeKanban } from './EmployeeKanban';
+import { CredentialsModal } from './CredentialsModal';
 import { 
   UserPlus, 
   Search, 
@@ -54,6 +55,8 @@ export const EmployeeList = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [credentialsData, setCredentialsData] = useState(null);
+  const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
 
   const mapEmployee = (e) => ({
     ...e,
@@ -119,10 +122,30 @@ export const EmployeeList = () => {
   const totalPages = Math.ceil(sortedEmployees.length / itemsPerPage) || 1;
   const paginatedEmployees = sortedEmployees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const handleSaveEmployee = () => {
+  const handleSaveEmployee = (savedEmployee, credentialsInfo) => {
     fetchEmployees();
     setIsFormModalOpen(false);
     setEditingEmployee(null);
+
+    if (credentialsInfo?.showCredentials) {
+      setCredentialsData({
+        email: credentialsInfo.email,
+        temporaryPassword: credentialsInfo.tempPassword,
+        welcomeEmail: credentialsInfo.welcomeEmail,
+      });
+      setIsCredentialsModalOpen(true);
+    }
+  };
+
+  const handleCredentialsReset = (credentialsInfo) => {
+    if (credentialsInfo?.showCredentials) {
+      setCredentialsData({
+        email: credentialsInfo.email,
+        temporaryPassword: credentialsInfo.tempPassword,
+        welcomeEmail: credentialsInfo.welcomeEmail,
+      });
+      setIsCredentialsModalOpen(true);
+    }
   };
 
   const confirmDelete = async () => {
@@ -364,6 +387,7 @@ export const EmployeeList = () => {
           employee={editingEmployee}
           onSave={handleSaveEmployee}
           onCancel={() => { setIsFormModalOpen(false); setEditingEmployee(null); }}
+          onResetCredentials={handleCredentialsReset}
         />
       </Modal>
 
@@ -376,6 +400,7 @@ export const EmployeeList = () => {
           setEditingEmployee(emp);
           setIsFormModalOpen(true);
         }}
+        onResetCredentials={handleCredentialsReset}
       />
 
       {/* CONFIRMATION DIALOG FOR DELETION */}
@@ -387,6 +412,18 @@ export const EmployeeList = () => {
         message={`Are you sure you want to delete the employee record for ${deleteTarget?.name}? This action cannot be undone.`}
         confirmText="Delete Record"
         variant="danger"
+      />
+
+      {/* ONE-TIME CREDENTIALS MODAL */}
+      <CredentialsModal
+        isOpen={isCredentialsModalOpen}
+        onClose={() => {
+          setIsCredentialsModalOpen(false);
+          setCredentialsData(null);
+        }}
+        email={credentialsData?.email}
+        temporaryPassword={credentialsData?.temporaryPassword}
+        welcomeEmail={credentialsData?.welcomeEmail}
       />
     </div>
   );

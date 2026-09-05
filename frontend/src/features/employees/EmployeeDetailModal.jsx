@@ -12,14 +12,19 @@ import {
   CreditCard, 
   ArrowRight,
   ExternalLink,
-  Edit
+  Edit,
+  Key
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
+import { useApp } from '../../store';
 
-export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit }) => {
+export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit, onResetCredentials }) => {
   const navigate = useNavigate();
+  const { user, addToast } = useApp();
   const empId = employee?.dbId || employee?.id;
+  const [resetting, setResetting] = useState(false);
+  const canManageEmployees = user?.role ? user.role !== 'Employee' : true;
 
   const [liveStats, setLiveStats] = useState({
     contract: null,
@@ -97,6 +102,27 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit }) => {
     navigate(path);
   };
 
+  const handleResetCredentials = async () => {
+    if (!empId) return;
+    setResetting(true);
+    try {
+      const res = await axiosClient.post(`/employees/${empId}/reset-credentials`);
+      addToast(`Credentials reset successfully for ${employee.name || employee.firstName}`, 'success');
+      onClose();
+      onResetCredentials?.({
+        showCredentials: true,
+        tempPassword: res.data?.temporary_password,
+        email: res.data?.account?.work_email || employee.email,
+        welcomeEmail: res.data?.welcome_email,
+      });
+    } catch (err) {
+      console.error('Failed to reset credentials:', err);
+      addToast(err.response?.data?.error?.message || 'Failed to reset employee credentials.', 'error');
+    } finally {
+      setResetting(false);
+    }
+  };
+
   return (
     <Modal
       isOpen={isOpen}
@@ -106,6 +132,16 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit }) => {
       footer={
         <>
           <Button variant="outline" onClick={onClose}>Close</Button>
+          {canManageEmployees && (
+            <Button
+              variant="secondary"
+              icon={Key}
+              onClick={handleResetCredentials}
+              loading={resetting}
+            >
+              Reset Credentials
+            </Button>
+          )}
           <Button variant="accent" icon={Edit} onClick={() => { onClose(); onEdit(employee); }}>
             Edit Employee Record
           </Button>

@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Input, Select, Alert, Spinner } from '../../components/ui';
-import { Save, User, Briefcase, Building, Clock } from 'lucide-react';
+import { Save, User, Briefcase, Building, Clock, Key } from 'lucide-react';
 import axiosClient from '../../api/axiosClient';
 import { useApp } from '../../store';
 
-export const EmployeeForm = ({ employee, onSave, onCancel }) => {
-  const { addToast } = useApp();
+export const EmployeeForm = ({ employee, onSave, onCancel, onResetCredentials }) => {
+  const { user, addToast } = useApp();
   const isEditing = Boolean(employee?.dbId || (employee?.id && typeof employee.id === 'number'));
   const targetId = employee?.dbId || employee?.id;
+  const canManageEmployees = user?.role ? user.role !== 'Employee' : true;
+  const [resetting, setResetting] = useState(false);
 
   const [departments, setDepartments] = useState([]);
   const [jobPositions, setJobPositions] = useState([]);
@@ -128,17 +130,46 @@ export const EmployeeForm = ({ employee, onSave, onCancel }) => {
       if (isEditing) {
         res = await axiosClient.patch(`/employees/${targetId}`, payload);
         addToast(`Updated employee profile for ${formData.first_name} ${formData.last_name}`, 'success');
+        if (onSave) onSave(res.data);
       } else {
         res = await axiosClient.post('/employees', payload);
         addToast(`Created new employee record for ${formData.first_name} ${formData.last_name}`, 'success');
+        if (res.data?.temporary_password) {
+          onSave?.(res.data, {
+            showCredentials: true,
+            tempPassword: res.data.temporary_password,
+            email: res.data.work_email,
+            welcomeEmail: res.data.welcome_email,
+          });
+        } else {
+          onSave?.(res.data);
+        }
       }
-
-      if (onSave) onSave(res.data);
     } catch (err) {
       console.error('Failed to save employee:', err);
       setApiError(err.response?.data?.error?.message || 'Failed to save employee profile.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleResetCredentials = async () => {
+    if (!targetId) return;
+    setResetting(true);
+    try {
+      const res = await axiosClient.post(`/employees/${targetId}/reset-credentials`);
+      addToast(`Credentials reset successfully for ${formData.first_name} ${formData.last_name}`, 'success');
+      onResetCredentials?.({
+        showCredentials: true,
+        tempPassword: res.data?.temporary_password,
+        email: res.data?.account?.work_email || formData.work_email,
+        welcomeEmail: res.data?.welcome_email,
+      });
+    } catch (err) {
+      console.error('Failed to reset credentials:', err);
+      addToast(err.response?.data?.error?.message || 'Failed to reset employee credentials.', 'error');
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -306,7 +337,19 @@ export const EmployeeForm = ({ employee, onSave, onCancel }) => {
       </div>
 
       {/* FORM ACTIONS */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '12px', marginTop: '12px' }}>
+        {isEditing && canManageEmployees && (
+          <Button
+            type="button"
+            variant="secondary"
+            icon={Key}
+            loading={resetting}
+            onClick={handleResetCredentials}
+            style={{ marginRight: 'auto' }}
+          >
+            Reset Credentials
+          </Button>
+        )}
         <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>

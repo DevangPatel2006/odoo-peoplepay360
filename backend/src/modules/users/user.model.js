@@ -99,6 +99,11 @@ export const removeRole = async (userId, roleId) => {
   await query('DELETE FROM user_roles WHERE user_id = $1 AND role_id = $2', [userId, roleId]);
 };
 
+export const findRoleIdByName = async (roleName) => {
+  const res = await query('SELECT id FROM roles WHERE name = $1', [roleName]);
+  return res.rows[0]?.id || null;
+};
+
 export default {
   findAll,
   findById,
@@ -107,4 +112,5 @@ export default {
   remove,
   addRole,
   removeRole,
+  findRoleIdByName,
 };

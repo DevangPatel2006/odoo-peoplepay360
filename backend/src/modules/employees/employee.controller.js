@@ -30,6 +30,11 @@ export const remove = async (req, res) => {
   return ok(res, { message: 'Employee deleted successfully' });
 };
 
+export const resetCredentials = async (req, res) => {
+  const result = await employeeService.resetCredentials(req.params.id, req.user);
+  return ok(res, result);
+};
+
 /**
  * Smart Button Passthroughs (Enforce employee-id scoping)
  */
@@ -91,4 +96,5 @@ export default {
   getEmployeeAttendance,
   getEmployeeTimeOff,
   getEmployeeAllocations,
+  resetCredentials,
 };

@@ -18,6 +18,7 @@ router.get('/:id', requirePermission('Employees', 'read'), employeeController.ge
 router.post('/', requirePermission('Employees', 'create'), validate(createEmployeeSchema), employeeController.create);
 router.patch('/:id', requirePermission('Employees', 'update'), validate(updateEmployeeSchema), employeeController.update);
 router.delete('/:id', requirePermission('Employees', 'delete'), employeeController.remove);
+router.post('/:id/reset-credentials', requirePermission('Employees', 'update'), employeeController.resetCredentials);
 
 // Smart buttons
 router.get('/:id/contracts', requirePermission('Contracts', 'read'), employeeController.getEmployeeContracts);

@@ -159,6 +159,62 @@ export const create = async (company_id, data) => {
   return res.rows[0];
 };
 
+export const createWithClient = async (client, company_id, data) => {
+  const fields = [
+    'company_id',
+    'employee_code',
+    'first_name',
+    'last_name',
+    'work_email',
+    'personal_phone',
+    'department_id',
+    'job_position_id',
+    'manager_id',
+    'working_schedule_id',
+    'work_location',
+    'employee_type',
+    'status',
+    'date_of_joining',
+    'date_of_birth',
+    'gender',
+    'address',
+    'bank_account_number',
+    'bank_ifsc_or_swift',
+    'bank_name',
+    'photo_url',
+  ];
+
+  const values = [
+    company_id,
+    data.employee_code,
+    data.first_name,
+    data.last_name,
+    data.work_email,
+    data.personal_phone || null,
+    data.department_id || null,
+    data.job_position_id || null,
+    data.manager_id || null,
+    data.working_schedule_id || null,
+    data.work_location || null,
+    data.employee_type,
+    data.status || 'Active',
+    data.date_of_joining,
+    data.date_of_birth || null,
+    data.gender || null,
+    data.address || null,
+    data.bank_account_number || null,
+    data.bank_ifsc_or_swift || null,
+    data.bank_name || null,
+    data.photo_url || null,
+  ];
+
+  const placeholders = values.map((_, i) => `$${i + 1}`).join(', ');
+  const sql = `INSERT INTO employees (${fields.join(', ')}) VALUES (${placeholders}) RETURNING *`;
+
+  const res = await client.query(sql, values);
+  return res.rows[0];
+};
+
 export const update = async (id, company_id, data) => {
   const setClauses = [];
   const values = [];
@@ -196,6 +252,7 @@ export default {
   findAll,
   findById,
   create,
+  createWithClient,
   update,
   remove,
 };

@@ -22,6 +22,8 @@ export const createEmployeeSchema = Joi.object({
   bank_ifsc_or_swift: Joi.string().trim().max(50).allow(null, ''),
   bank_name: Joi.string().trim().max(150).allow(null, ''),
   photo_url: Joi.string().uri().allow(null, ''),
+  role_ids: Joi.array().items(Joi.number().integer().positive()).optional(),
+  send_welcome_email: Joi.boolean().default(true),
 });
 
 export const updateEmployeeSchema = Joi.object({

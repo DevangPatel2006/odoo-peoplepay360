@@ -3,6 +3,11 @@ import env from '../../config/env.js';
 import { resolveOwnershipScope } from '../../common/utils/scope.js';
 import { EMPLOYEE_STATUSES } from '../../common/constants/enums.js';
 import { AppError } from '../../middleware/errorHandler.js';
+import { withTransaction } from '../../config/db.js';
+import { generateTemporaryPassword } from '../../common/utils/password.js';
+import employeeMailer from './employee.mailer.js';
+import ROLES from '../../common/constants/roles.js';
+import bcrypt from 'bcrypt';
 
 export const listEmployees = async (user, queryParams = {}) => {
   const { scope, employeeId } = resolveOwnershipScope(user, 'Employees');
@@ -73,7 +78,120 @@ export const getEmployeeById = async (id, user) => {
 };
 
 export const createEmployee = async (user, data) => {
-  return employeeModel.create(user.companyId, data);
+  const { role_ids, send_welcome_email = true, ...employeeFields } = data;
+
+  const result = await withTransaction(async (client) => {
+    // 1. Create the employee record inside the same transaction
+    const employee = await employeeModel.createWithClient(client, user.companyId, employeeFields);
+
+    // 2. Resolve which roles the new login account should have
+    let resolvedRoleIds = role_ids;
+    if (!resolvedRoleIds || resolvedRoleIds.length === 0) {
+      const employeeRoleRes = await client.query('SELECT id FROM roles WHERE name = $1', [ROLES.EMPLOYEE]);
+      resolvedRoleIds = employeeRoleRes.rows[0] ? [employeeRoleRes.rows[0].id] : [];
+    }
+
+    // 3. Generate + hash a temporary password
+    const temporaryPassword = generateTemporaryPassword();
+    const passwordHash = await bcrypt.hash(temporaryPassword, env.security.saltRounds);
+
+    // 4. Create the linked login account inside the SAME transaction
+    const userRow = await client.query(
+      `INSERT INTO users (employee_id, work_email, password_hash, is_active)
+       VALUES ($1, $2, $3, true)
+       RETURNING id, employee_id, work_email, is_active`,
+      [employee.id, employee.work_email, passwordHash]
+    );
+    const newUser = userRow.rows[0];
+
+    for (const roleId of resolvedRoleIds) {
+      await client.query(
+        'INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+        [newUser.id, roleId]
+      );
+    }
+
+    return { employee, account: newUser, temporaryPassword, sendWelcomeEmail: send_welcome_email };
+  });
+
+  // 5. Email is sent OUTSIDE the transaction
+  let emailResult = { success: false, skipped: true };
+  if (result.sendWelcomeEmail) {
+    emailResult = await employeeMailer.sendWelcomeCredentialsEmail({
+      work_email: result.employee.work_email,
+      first_name: result.employee.first_name,
+      temporary_password: result.temporaryPassword,
+    });
+  }
+
+  // 6. Return temporary password to caller exactly once
+  return {
+    ...result.employee,
+    account: { id: result.account.id, work_email: result.account.work_email },
+    temporary_password: result.temporaryPassword,
+    welcome_email: emailResult,
+  };
+};
+
+export const resetCredentials = async (id, user) => {
+  const employee = await getEmployeeById(id, user);
+
+  const temporaryPassword = generateTemporaryPassword();
+  const passwordHash = await bcrypt.hash(temporaryPassword, env.security.saltRounds);
+
+  const account = await withTransaction(async (client) => {
+    // Check if a user already exists for this employee or work_email
+    const existingUserRes = await client.query(
+      'SELECT id, employee_id, work_email FROM users WHERE employee_id = $1 OR LOWER(work_email) = LOWER($2)',
+      [employee.id, employee.work_email]
+    );
+
+    let userRecord;
+    if (existingUserRes.rows.length > 0) {
+      userRecord = existingUserRes.rows[0];
+      const updatedUserRes = await client.query(
+        `UPDATE users 
+         SET password_hash = $1, employee_id = $2, work_email = $3, updated_at = CURRENT_TIMESTAMP
+         WHERE id = $4
+         RETURNING id, employee_id, work_email, is_active`,
+        [passwordHash, employee.id, employee.work_email, userRecord.id]
+      );
+      userRecord = updatedUserRes.rows[0];
+    } else {
+      // Create user row if one doesn't exist yet for an older employee
+      const newUserRes = await client.query(
+        `INSERT INTO users (employee_id, work_email, password_hash, is_active)
+         VALUES ($1, $2, $3, true)
+         RETURNING id, employee_id, work_email, is_active`,
+        [employee.id, employee.work_email, passwordHash]
+      );
+      userRecord = newUserRes.rows[0];
+
+      // Assign default Employee role
+      const employeeRoleRes = await client.query('SELECT id FROM roles WHERE name = $1', [ROLES.EMPLOYEE]);
+      if (employeeRoleRes.rows[0]) {
+        await client.query(
+          'INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+          [userRecord.id, employeeRoleRes.rows[0].id]
+        );
+      }
+    }
+
+    return userRecord;
+  });
+
+  const emailResult = await employeeMailer.sendWelcomeCredentialsEmail({
+    work_email: employee.work_email,
+    first_name: employee.first_name,
+    temporary_password: temporaryPassword,
+  });
+
+  return {
+    ...employee,
+    account: { id: account.id, work_email: account.work_email },
+    temporary_password: temporaryPassword,
+    welcome_email: emailResult,
+  };
 };
 
 export const updateEmployee = async (id, user, data) => {
@@ -91,6 +209,7 @@ export default {
   listEmployees,
   getEmployeeById,
   createEmployee,
+  resetCredentials,
   updateEmployee,
   deleteEmployee,
 };
