@@ -14,22 +14,29 @@ import { useNavigate } from 'react-router-dom';
 export const KpiCards = ({ data = {} }) => {
   const navigate = useNavigate();
 
+  const totalEmps = data?.totalEmployees !== undefined ? data.totalEmployees : '—';
+  const activeContracts = data?.activeContracts !== undefined ? data.activeContracts : '—';
+  const payrunStatus = data?.payrunStatus || 'No Payruns';
+  const pendingLeaves = data?.pendingLeaveRequests !== undefined ? data.pendingLeaveRequests : '—';
+  const attendanceExceptions = data?.attendanceExceptions !== undefined ? data.attendanceExceptions : '—';
+  const payrollWarnings = data?.payrollWarnings !== undefined ? data.payrollWarnings : '—';
+
   const kpis = [
     {
       id: 'total-employees',
       title: 'Total Employees',
-      value: data.totalEmployees ?? 142,
-      subtitle: '+4 added this month',
+      value: totalEmps,
+      subtitle: 'Active organization workforce',
       icon: Users,
       colorType: 'normal',
-      badge: { text: 'Active Workforce', type: 'primary' },
+      badge: { text: 'Workforce', type: 'primary' },
       onClick: () => navigate('/employees'),
     },
     {
       id: 'active-contracts',
       title: 'Active Contracts',
-      value: data.activeContracts ?? 138,
-      subtitle: '97.2% active coverage',
+      value: activeContracts,
+      subtitle: 'Verified running contracts',
       icon: FileCheck,
       colorType: 'success',
       badge: { text: 'Running', type: 'success' },
@@ -38,41 +45,41 @@ export const KpiCards = ({ data = {} }) => {
     {
       id: 'payroll-status',
       title: 'Payroll / Payrun',
-      value: data.payrunStatus ?? 'Draft Scope',
-      subtitle: 'Est. $485,200 for Sep 2026',
+      value: payrunStatus,
+      subtitle: data?.kpis?.total_net_salary_paid ? `Disbursed: $${parseFloat(data.kpis.total_net_salary_paid).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : 'Current Payrun Status',
       icon: DollarSign,
       colorType: 'normal',
-      badge: { text: 'Step 1 of 2', type: 'accent' },
+      badge: { text: 'Payroll', type: 'accent' },
       onClick: () => navigate('/payroll'),
     },
     {
       id: 'pending-timeoff',
       title: 'Pending Time Off',
-      value: data.pendingLeaveRequests ?? 5,
-      subtitle: 'Requires HR manager review',
+      value: pendingLeaves,
+      subtitle: 'Leave requests awaiting signoff',
       icon: Calendar,
       colorType: 'warning',
-      badge: { text: 'Action Needed', type: 'warning' },
+      badge: { text: 'Review', type: 'warning' },
       onClick: () => navigate('/time-off'),
     },
     {
       id: 'attendance-exceptions',
       title: 'Attendance Exceptions',
-      value: data.attendanceExceptions ?? 3,
-      subtitle: 'Unresolved check-in disputes',
+      value: attendanceExceptions,
+      subtitle: 'Disputed or missing checkouts',
       icon: AlertTriangle,
-      colorType: 'warning',
-      badge: { text: 'Disputed', type: 'warning' },
+      colorType: attendanceExceptions > 0 ? 'warning' : 'normal',
+      badge: { text: 'Attendance', type: attendanceExceptions > 0 ? 'warning' : 'neutral' },
       onClick: () => navigate('/attendance'),
     },
     {
       id: 'payroll-warnings',
       title: 'Payroll Warnings',
-      value: data.payrollWarnings ?? 4,
-      subtitle: 'Missing bank routing & details',
+      value: payrollWarnings,
+      subtitle: 'Unresolved payroll anomalies',
       icon: AlertOctagon,
-      colorType: 'critical',
-      badge: { text: 'Critical', type: 'error' },
+      colorType: payrollWarnings > 0 ? 'critical' : 'normal',
+      badge: { text: payrollWarnings > 0 ? 'Action Needed' : 'Clean', type: payrollWarnings > 0 ? 'error' : 'success' },
       onClick: () => navigate('/payroll'),
     },
   ];

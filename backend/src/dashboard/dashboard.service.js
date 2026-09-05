@@ -152,6 +152,83 @@ export const getAlerts = async (companyId) => {
   };
 };
 
+export const getDashboardSummary = async (companyId, queryParams = {}) => {
+  const [
+    kpis,
+    alerts,
+    salaryCost,
+    attendance,
+    timeOff,
+    departmentOverview,
+    monthlyTrend,
+    empCountRes,
+    contractCountRes,
+    attendanceExceptionsRes,
+    pendingLeavesRes,
+    recentLeavesRes,
+  ] = await Promise.all([
+    getKpis(companyId, queryParams).catch(() => null),
+    getAlerts(companyId).catch(() => ({ unresolved_warnings: [], payslip_status_alerts: [] })),
+    getSalaryCostByDepartment(companyId).catch(() => []),
+    getAttendanceOverview(companyId).catch(() => []),
+    getTimeOffOverview().catch(() => []),
+    getDepartmentOverview(companyId).catch(() => []),
+    getMonthlyTrend(companyId).catch(() => []),
+    query('SELECT COUNT(*)::int AS count FROM employees WHERE company_id = $1 AND status = $2', [companyId, 'Active']).catch(() => ({ rows: [{ count: 0 }] })),
+    query('SELECT COUNT(*)::int AS count FROM contracts c JOIN employees e ON e.id = c.employee_id WHERE e.company_id = $1 AND c.status = $2', [companyId, 'Running']).catch(() => ({ rows: [{ count: 0 }] })),
+    query("SELECT COUNT(*)::int AS count FROM attendances a JOIN employees e ON e.id = a.employee_id WHERE e.company_id = $1 AND (a.check_out IS NULL OR a.status IN ('Disputed', 'Late'))", [companyId]).catch(() => ({ rows: [{ count: 0 }] })),
+    query("SELECT COUNT(*)::int AS count FROM time_off_requests tr JOIN employees e ON e.id = tr.employee_id WHERE e.company_id = $1 AND tr.status = 'To Approve'", [companyId]).catch(() => ({ rows: [{ count: 0 }] })),
+    query(`
+      SELECT tr.id, tr.status, tr.duration, tr.start_date, tr.end_date,
+             tot.name AS time_off_type_name,
+             e.first_name, e.last_name
+      FROM time_off_requests tr
+      JOIN employees e ON e.id = tr.employee_id
+      JOIN time_off_types tot ON tot.id = tr.time_off_type_id
+      WHERE e.company_id = $1
+      ORDER BY tr.created_at DESC
+      LIMIT 5
+    `, [companyId]).catch(() => ({ rows: [] })),
+  ]);
+
+  const colors = ['#7C3AED', '#3B82F6', '#059669', '#D97706', '#172554', '#EC4899'];
+  const totalGross = (salaryCost || []).reduce((sum, r) => sum + parseFloat(r.total_gross_amount || 0), 0) || 1;
+  const formattedSalaryCost = (salaryCost || []).map((r, i) => ({
+    name: r.department_name,
+    count: parseInt(r.employee_count, 10),
+    cost: parseFloat(r.total_gross_amount || 0),
+    percentage: Math.round((parseFloat(r.total_gross_amount || 0) / totalGross) * 1000) / 10,
+    color: colors[i % colors.length],
+  }));
+
+  const totalEmployees = empCountRes.rows[0]?.count ?? 0;
+  const activeContracts = contractCountRes.rows[0]?.count ?? 0;
+  const attendanceExceptions = attendanceExceptionsRes.rows[0]?.count ?? 0;
+  const pendingLeaveRequests = pendingLeavesRes.rows[0]?.count ?? 0;
+  const payrollWarnings = alerts?.unresolved_warnings?.length ?? 0;
+
+  const payrunStatus = kpis?.pending_payslips_count > 0
+    ? `${kpis.pending_payslips_count} Pending Payslips`
+    : (kpis?.paid_payslips_count > 0 ? 'All Paid' : 'Draft Scope');
+
+  return {
+    totalEmployees,
+    activeContracts,
+    payrunStatus,
+    pendingLeaveRequests,
+    attendanceExceptions,
+    payrollWarnings,
+    kpis,
+    alerts: alerts?.unresolved_warnings || [],
+    salaryCost: formattedSalaryCost,
+    attendance,
+    timeOff,
+    recentRequests: recentLeavesRes?.rows || [],
+    departmentOverview,
+    monthlyTrend,
+  };
+};
+
 export default {
   getKpis,
   getSalaryCostByDepartment,
@@ -160,4 +237,5 @@ export default {
   getTimeOffOverview,
   getDepartmentOverview,
   getAlerts,
+  getDashboardSummary,
 };

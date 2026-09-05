@@ -32,66 +32,6 @@ export const AttendanceList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  const initialAttendances = [
-    {
-      id: 'ATT-201',
-      employeeName: 'Alexander Wright',
-      employeeId: 'EMP-101',
-      date: '2026-09-05',
-      checkIn: '09:02 AM',
-      checkOut: '05:05 PM',
-      workedHours: '8.0 hrs',
-      status: 'Present', // Normal -> Emerald
-      isAbnormal: false,
-    },
-    {
-      id: 'ATT-202',
-      employeeName: 'Sophia Martinez',
-      employeeId: 'EMP-102',
-      date: '2026-09-05',
-      checkIn: '08:55 AM',
-      checkOut: 'Missing',
-      workedHours: 'Pending',
-      status: 'Missing Check-Out', // Error -> Rose
-      isAbnormal: true,
-      anomalyReason: 'Employee did not clock out at shift end',
-    },
-    {
-      id: 'ATT-203',
-      employeeName: 'Marcus Vance',
-      employeeId: 'EMP-103',
-      date: '2026-09-05',
-      checkIn: '09:45 AM',
-      checkOut: '06:15 PM',
-      workedHours: '7.5 hrs',
-      status: 'Disputed', // Warning -> Amber
-      isAbnormal: true,
-      anomalyReason: 'Late check-in dispute pending supervisor signoff',
-    },
-    {
-      id: 'ATT-204',
-      employeeName: 'Elena Rostova',
-      employeeId: 'EMP-104',
-      date: '2026-09-05',
-      checkIn: '—',
-      checkOut: '—',
-      workedHours: '0.0 hrs',
-      status: 'On Leave', // Warning -> Amber
-      isAbnormal: false,
-    },
-    {
-      id: 'ATT-205',
-      employeeName: 'David Chen',
-      employeeId: 'EMP-105',
-      date: '2026-09-04',
-      checkIn: '09:00 AM',
-      checkOut: '05:00 PM',
-      workedHours: '7.0 hrs',
-      status: 'Present',
-      isAbnormal: false,
-    },
-  ];
-
   const mapAttendance = (a) => ({
     ...a,
     id: `ATT-${a.id}`,
@@ -100,7 +40,7 @@ export const AttendanceList = () => {
     employeeId: a.employeeId || a.employee_code || `EMP-${a.employee_id}`,
     date: a.date || (a.attendance_date ? String(a.attendance_date).split('T')[0] : ''),
     checkIn: a.checkIn || (a.check_in ? new Date(a.check_in).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'),
-    checkOut: a.checkOut || (a.check_out ? new Date(a.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Missing'),
+    checkOut: a.checkOut || (a.check_out ? new Date(a.check_out).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (a.check_in ? 'In Progress' : 'Missing')),
     workedHours: a.workedHours || (a.worked_hours != null ? `${a.worked_hours} hrs` : '0.0 hrs'),
     status: a.status || 'Present',
     isAbnormal: a.is_abnormal ?? false,
@@ -112,13 +52,10 @@ export const AttendanceList = () => {
     try {
       const response = await axiosClient.get('/attendance');
       const list = Array.isArray(response.data) ? response.data : (response.data?.data || []);
-      if (list.length > 0) {
-        setAttendances(list.map(mapAttendance));
-      } else {
-        setAttendances(initialAttendances);
-      }
+      setAttendances(list.map(mapAttendance));
     } catch (err) {
-      setAttendances(initialAttendances);
+      console.error('Failed to load attendances:', err);
+      setAttendances([]);
     } finally {
       setLoading(false);
     }

@@ -1,30 +1,83 @@
-import React, { useState } from 'react';
-import { Button, Input, Select, Alert } from '../../components/ui';
-import { Save, FileText, Calendar, DollarSign, Clock, Layers } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Button, Input, Select, Alert, Spinner } from '../../components/ui';
+import { Save, FileText, Calendar, DollarSign, Clock } from 'lucide-react';
+import axiosClient from '../../api/axiosClient';
+import { useApp } from '../../store';
 
 export const ContractForm = ({ contract, onSave, onCancel }) => {
+  const { addToast } = useApp();
+  const isEditing = Boolean(contract?.dbId || (contract?.id && typeof contract.id === 'number'));
+  const targetId = contract?.dbId || contract?.id;
+
+  const [employees, setEmployees] = useState([]);
+  const [structures, setStructures] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [loadingMeta, setLoadingMeta] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [apiError, setApiError] = useState('');
+
   const [formData, setFormData] = useState({
-    contractName: contract?.contractName || `CNT-${Math.floor(100 + Math.random() * 900)}`,
-    employeeName: contract?.employeeName || 'Alexander Wright',
-    employeeId: contract?.employeeId || 'EMP-101',
-    startDate: contract?.startDate || '2023-01-15',
-    endDate: contract?.endDate || '',
-    wage: contract?.wage || '8500',
-    salaryStructure: contract?.salaryStructure || 'Standard Software Engineer Structure',
-    workingSchedule: contract?.workingSchedule || 'Standard 40h/week',
+    contract_number: contract?.contractName || contract?.contract_number || `CON/${new Date().getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`,
+    employee_id: contract?.employee_id ? String(contract.employee_id) : '',
+    start_date: contract?.startDate ? String(contract.startDate).split('T')[0] : (contract?.start_date ? String(contract.start_date).split('T')[0] : new Date().toISOString().split('T')[0]),
+    end_date: contract?.endDate && contract.endDate !== 'Ongoing' ? String(contract.endDate).split('T')[0] : (contract?.end_date ? String(contract.end_date).split('T')[0] : ''),
+    wage_per_month: contract?.wage || contract?.wage_per_month || '',
+    salary_structure_id: contract?.salary_structure_id ? String(contract.salary_structure_id) : '',
+    working_schedule_id: contract?.working_schedule_id ? String(contract.working_schedule_id) : '',
     status: contract?.status || 'Running',
+    notes: contract?.notes || '',
   });
 
   const [errors, setErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadMetadata = async () => {
+      setLoadingMeta(true);
+      try {
+        const [empRes, structRes, schedRes] = await Promise.all([
+          axiosClient.get('/employees').catch(() => ({ data: [] })),
+          axiosClient.get('/salary-structures').catch(() => ({ data: [] })),
+          axiosClient.get('/working-schedules').catch(() => ({ data: [] })),
+        ]);
+
+        if (!isMounted) return;
+
+        const empList = Array.isArray(empRes.data) ? empRes.data : [];
+        const structList = Array.isArray(structRes.data) ? structRes.data : [];
+        const schedList = Array.isArray(schedRes.data) ? schedRes.data : [];
+
+        setEmployees(empList);
+        setStructures(structList);
+        setSchedules(schedList);
+
+        if (!contract) {
+          setFormData((prev) => ({
+            ...prev,
+            employee_id: prev.employee_id || (empList[0] ? String(empList[0].id) : ''),
+            salary_structure_id: prev.salary_structure_id || (structList[0] ? String(structList[0].id) : ''),
+            working_schedule_id: prev.working_schedule_id || (schedList[0] ? String(schedList[0].id) : ''),
+          }));
+        }
+      } catch (err) {
+        console.error('Failed to load contract dependencies:', err);
+      } finally {
+        if (isMounted) setLoadingMeta(false);
+      }
+    };
+
+    loadMetadata();
+    return () => { isMounted = false; };
+  }, [contract]);
 
   const validate = () => {
     const newErrors = {};
-    if (!formData.employeeName) newErrors.employeeName = 'Employee selection is required';
-    if (!formData.startDate) newErrors.startDate = 'Start date is required';
-    if (!formData.wage || Number(formData.wage) <= 0) newErrors.wage = 'Valid wage amount is required';
-    if (!formData.salaryStructure) newErrors.salaryStructure = 'Salary structure is required';
+    if (!formData.employee_id) newErrors.employee_id = 'Employee selection is required';
+    if (!formData.start_date) newErrors.start_date = 'Start date is required';
+    if (!formData.wage_per_month || parseFloat(formData.wage_per_month) <= 0) {
+      newErrors.wage_per_month = 'Valid wage amount is required';
+    }
+    if (!formData.salary_structure_id) newErrors.salary_structure_id = 'Salary structure is required';
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -37,29 +90,59 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
-    setLoading(true);
-    setSuccessMsg('');
+    setSubmitting(true);
+    setApiError('');
+    try {
+      const selectedEmp = employees.find((e) => String(e.id) === String(formData.employee_id));
 
-    setTimeout(() => {
-      setLoading(false);
-      setSuccessMsg(`Contract ${formData.contractName} saved successfully!`);
-      setTimeout(() => {
-        onSave({
-          ...formData,
-          id: contract?.id || formData.contractName,
-          formattedWage: `$${Number(formData.wage).toLocaleString()}/mo`,
-        });
-      }, 500);
-    }, 400);
+      const payload = {
+        contract_number: formData.contract_number.trim(),
+        employee_id: Number(formData.employee_id),
+        department_id: selectedEmp?.department_id || null,
+        job_position_id: selectedEmp?.job_position_id || null,
+        working_schedule_id: formData.working_schedule_id ? Number(formData.working_schedule_id) : null,
+        salary_structure_id: formData.salary_structure_id ? Number(formData.salary_structure_id) : null,
+        wage_per_month: parseFloat(formData.wage_per_month),
+        start_date: formData.start_date,
+        end_date: formData.end_date || null,
+        status: formData.status,
+        notes: formData.notes.trim() || null,
+      };
+
+      let res;
+      if (isEditing) {
+        res = await axiosClient.patch(`/contracts/${targetId}`, payload);
+        addToast(`Contract ${payload.contract_number} updated successfully!`, 'success');
+      } else {
+        res = await axiosClient.post('/contracts', payload);
+        addToast(`Contract ${payload.contract_number} created successfully!`, 'success');
+      }
+
+      if (onSave) onSave(res.data);
+    } catch (err) {
+      console.error('Failed to save contract:', err);
+      setApiError(err.response?.data?.error?.message || 'Failed to save contract.');
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (loadingMeta) {
+    return (
+      <div style={{ padding: '32px', textAlign: 'center' }}>
+        <Spinner size="md" />
+        <p className="text-sm text-secondary" style={{ marginTop: '8px' }}>Loading form dependencies...</p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {successMsg && <Alert type="success">{successMsg}</Alert>}
+      {apiError && <Alert type="error">{apiError}</Alert>}
 
       {/* Contract & Employee Selection */}
       <div style={{ padding: '16px', background: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
@@ -69,23 +152,19 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
           <Input
-            label="Contract Code"
-            value={formData.contractName}
-            onChange={(e) => handleChange('contractName', e.target.value)}
-            disabled
+            label="Contract Number *"
+            value={formData.contract_number}
+            onChange={(e) => handleChange('contract_number', e.target.value)}
           />
           <Select
             label="Employee *"
-            value={formData.employeeName}
-            onChange={(e) => handleChange('employeeName', e.target.value)}
-            error={errors.employeeName}
-            options={[
-              { value: 'Alexander Wright', label: 'Alexander Wright (EMP-101)' },
-              { value: 'Sophia Martinez', label: 'Sophia Martinez (EMP-102)' },
-              { value: 'Marcus Vance', label: 'Marcus Vance (EMP-103)' },
-              { value: 'Elena Rostova', label: 'Elena Rostova (EMP-104)' },
-              { value: 'David Chen', label: 'David Chen (EMP-105)' },
-            ]}
+            value={formData.employee_id}
+            onChange={(e) => handleChange('employee_id', e.target.value)}
+            error={errors.employee_id}
+            options={employees.map((emp) => ({
+              value: String(emp.id),
+              label: `${emp.first_name} ${emp.last_name} (${emp.employee_code || `EMP-${emp.id}`})`,
+            }))}
           />
         </div>
       </div>
@@ -100,15 +179,15 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
           <Input
             label="Start Date *"
             type="date"
-            value={formData.startDate}
-            onChange={(e) => handleChange('startDate', e.target.value)}
-            error={errors.startDate}
+            value={formData.start_date}
+            onChange={(e) => handleChange('start_date', e.target.value)}
+            error={errors.start_date}
           />
           <Input
-            label="End Date (Leave empty if ongoing)"
+            label="End Date (Leave empty if open-ended)"
             type="date"
-            value={formData.endDate}
-            onChange={(e) => handleChange('endDate', e.target.value)}
+            value={formData.end_date}
+            onChange={(e) => handleChange('end_date', e.target.value)}
             helpText="Open-ended contract if left blank"
           />
         </div>
@@ -122,24 +201,23 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
           <Input
-            label="Monthly Wage ($) *"
+            label="Monthly Base Wage ($) *"
             type="number"
-            value={formData.wage}
-            onChange={(e) => handleChange('wage', e.target.value)}
-            error={errors.wage}
-            placeholder="8500"
+            step="0.01"
+            value={formData.wage_per_month}
+            onChange={(e) => handleChange('wage_per_month', e.target.value)}
+            error={errors.wage_per_month}
+            placeholder="8500.00"
           />
           <Select
             label="Salary Structure *"
-            value={formData.salaryStructure}
-            onChange={(e) => handleChange('salaryStructure', e.target.value)}
-            error={errors.salaryStructure}
-            options={[
-              { value: 'Standard Software Engineer Structure', label: 'Standard Software Engineer Structure' },
-              { value: 'Executive Management Structure', label: 'Executive Management Structure' },
-              { value: 'HR & Administrative Structure', label: 'HR & Administrative Structure' },
-              { value: 'Sales Commission Structure', label: 'Sales Commission Structure' },
-            ]}
+            value={formData.salary_structure_id}
+            onChange={(e) => handleChange('salary_structure_id', e.target.value)}
+            error={errors.salary_structure_id}
+            options={structures.map((s) => ({
+              value: String(s.id),
+              label: `${s.name} (${s.structure_type || 'Regular'})`,
+            }))}
           />
         </div>
       </div>
@@ -153,13 +231,12 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
           <Select
             label="Working Schedule"
-            value={formData.workingSchedule}
-            onChange={(e) => handleChange('workingSchedule', e.target.value)}
-            options={[
-              { value: 'Standard 40h/week', label: 'Standard 40h/week (Mon-Fri 9-5)' },
-              { value: 'Flexible 35h/week', label: 'Flexible 35h/week' },
-              { value: 'Shift Pattern A', label: 'Rotational Shift Pattern A' },
-            ]}
+            value={formData.working_schedule_id}
+            onChange={(e) => handleChange('working_schedule_id', e.target.value)}
+            options={schedules.map((sc) => ({
+              value: String(sc.id),
+              label: sc.name,
+            }))}
           />
           <Select
             label="Contract Status"
@@ -168,7 +245,7 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
             options={[
               { value: 'Running', label: 'Running (Active for Payrun Resolver)' },
               { value: 'Draft', label: 'Draft' },
-              { value: 'Expired', label: 'Expired (Historical)' },
+              { value: 'Expired', label: 'Expired' },
               { value: 'Cancelled', label: 'Cancelled' },
             ]}
           />
@@ -176,13 +253,15 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
       </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-        <Button type="button" variant="outline" onClick={onCancel}>
+        <Button type="button" variant="outline" onClick={onCancel} disabled={submitting}>
           Cancel
         </Button>
-        <Button type="submit" variant="primary" loading={loading} icon={Save}>
-          Save Contract
+        <Button type="submit" variant="primary" loading={submitting} icon={Save}>
+          {isEditing ? 'Update Contract' : 'Save Contract'}
         </Button>
       </div>
     </form>
   );
 };
+
+export default ContractForm;

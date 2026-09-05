@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { KpiCards } from './KpiCards';
 import { AlertsPanel } from './AlertsPanel';
 import { SalaryCostByDeptChart } from './SalaryCostByDeptChart';
+import { DepartmentOverview } from './DepartmentOverview';
+import { MonthlyTrendChart } from './MonthlyTrendChart';
 import { AttendanceOverview } from './AttendanceOverview';
 import { TimeOffOverview } from './TimeOffOverview';
 import { Button, Spinner, Alert } from '../../components/ui';
-import { Play, RefreshCw, Sparkles } from 'lucide-react';
+import { Play, RefreshCw, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
 
@@ -22,16 +24,9 @@ export const DashboardPage = () => {
       const response = await axiosClient.get('/dashboard');
       setDashboardData(response.data);
     } catch (err) {
-      // Clean fallback: consume available data or render structured presentation
-      console.log('Backend API offline or initial state, using structured presentation model.');
-      setDashboardData({
-        totalEmployees: 142,
-        activeContracts: 138,
-        payrunStatus: 'Draft Scope',
-        pendingLeaveRequests: 5,
-        attendanceExceptions: 3,
-        payrollWarnings: 4,
-      });
+      console.error('Failed to load dashboard data:', err);
+      setError(err.response?.data?.error?.message || 'Unable to connect to the backend server. Please verify your connection.');
+      setDashboardData(null);
     } finally {
       setLoading(false);
     }
@@ -47,7 +42,7 @@ export const DashboardPage = () => {
       <div className="page-header">
         <div className="page-header-text">
           <h1 className="page-title">PeoplePay360 Dashboard</h1>
-          <p className="page-description">Overview of your workforce, attendance and payroll.</p>
+          <p className="page-description">Overview of your workforce, attendance, and payroll operations.</p>
         </div>
         <div className="page-actions">
           <Button 
@@ -69,8 +64,17 @@ export const DashboardPage = () => {
         </div>
       </div>
 
+      {error && (
+        <Alert type="error">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span>{error}</span>
+            <Button size="xs" variant="outline" onClick={fetchDashboardData}>Try Again</Button>
+          </div>
+        </Alert>
+      )}
+
       {/* KPI CARDS GRID */}
-      {loading ? (
+      {loading && !dashboardData ? (
         <div style={{ padding: '32px', textAlign: 'center' }}>
           <Spinner size="lg" />
           <p className="text-sm text-secondary" style={{ marginTop: '8px' }}>Loading organization metrics...</p>
@@ -80,17 +84,23 @@ export const DashboardPage = () => {
       )}
 
       {/* ATTENTION REQUIRED (Actionable Warnings Section) */}
-      <AlertsPanel />
+      <AlertsPanel warnings={dashboardData?.alerts || []} />
 
       {/* PAYROLL & HR ACTIVITY GRID */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '24px' }}>
         {/* Payroll Breakdown Section */}
-        <SalaryCostByDeptChart />
+        <SalaryCostByDeptChart data={dashboardData?.salaryCost || []} />
+
+        {/* Department Overview */}
+        <DepartmentOverview data={dashboardData?.departmentOverview || []} />
+
+        {/* Monthly Trend Analytics */}
+        <MonthlyTrendChart data={dashboardData?.monthlyTrend || []} />
 
         {/* HR Activity Overview Section */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <AttendanceOverview />
-          <TimeOffOverview />
+          <AttendanceOverview data={dashboardData?.attendance} />
+          <TimeOffOverview data={dashboardData?.timeOff} recentRequests={dashboardData?.recentRequests} />
         </div>
       </div>
     </div>

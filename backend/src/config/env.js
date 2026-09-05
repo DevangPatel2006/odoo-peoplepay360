@@ -42,6 +42,7 @@ const env = {
     pass: process.env.SMTP_PASS || '',
     from: process.env.SMTP_FROM || 'no-reply@peoplepay360.com',
   },
+  corsOrigin: process.env.CORS_ORIGIN || '*',
 };
 
 export default env;

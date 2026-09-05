@@ -1,97 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Badge, Button, Modal, Pagination, EmptyState, Spinner, Alert, Select, ConfirmModal } from '../../components/ui';
 import { RequestForm } from './RequestForm';
-import { Plus, Search, Calendar, Check, X, Eye, FileText, CheckCircle2, AlertTriangle, AlertCircle } from 'lucide-react';
+import { Plus, Search, Calendar, Check, X, Eye, RefreshCw } from 'lucide-react';
 import axiosClient from '../../api/axiosClient';
-
 import { useApp } from '../../store';
 
-export const RequestList = ({ userRole = 'admin', onRefreshBalances }) => {
-  const { addToast } = useApp();
+export const RequestList = ({ onRefreshBalances }) => {
+  const { user, addToast } = useApp();
   const [requests, setRequests] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [confirmActionState, setConfirmActionState] = useState(null); // { id, status, employeeName }
+  const [confirmActionState, setConfirmActionState] = useState(null); // { id, newStatus, employeeName }
+  const [actionLoading, setActionLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 6;
+  const itemsPerPage = 8;
 
-  // Permission check for Approve/Refuse actions
-  const canApproveOrRefuse = userRole === 'admin' || userRole === 'HR Manager' || userRole === 'hr';
-
-  const initialRequests = [
-    {
-      id: 'REQ-301',
-      employeeName: 'Marcus Vance',
-      employeeId: 'EMP-103',
-      leaveType: 'Paid Vacation Leave',
-      startDate: '2026-09-10',
-      endDate: '2026-09-12',
-      duration: '3 days',
-      reason: 'Annual family vacation leave',
-      status: 'Pending', // Amber
-      allocatedDays: 20,
-      usedDays: 6,
-      remainingDays: 14,
-    },
-    {
-      id: 'REQ-302',
-      employeeName: 'Elena Rostova',
-      employeeId: 'EMP-104',
-      leaveType: 'Sick Leave',
-      startDate: '2026-09-05',
-      endDate: '2026-09-05',
-      duration: '1 day',
-      reason: 'Doctor appointment & medical rest',
-      status: 'Approved', // Emerald
-      allocatedDays: 10,
-      usedDays: 5,
-      remainingDays: 5,
-    },
-    {
-      id: 'REQ-303',
-      employeeName: 'David Chen',
-      employeeId: 'EMP-105',
-      leaveType: 'Unpaid Leave',
-      startDate: '2026-09-14',
-      endDate: '2026-09-15',
-      duration: '2 days',
-      reason: 'Personal urgent matters',
-      status: 'Pending', // Amber
-      allocatedDays: 0,
-      usedDays: 2,
-      remainingDays: 0,
-    },
-    {
-      id: 'REQ-304',
-      employeeName: 'Sophia Martinez',
-      employeeId: 'EMP-102',
-      leaveType: 'Paid Vacation Leave',
-      startDate: '2026-08-20',
-      endDate: '2026-08-22',
-      duration: '3 days',
-      reason: 'Summer break trip',
-      status: 'Refused', // Rose
-      allocatedDays: 20,
-      usedDays: 3,
-      remainingDays: 17,
-    },
-  ];
+  // Permission check: admins, managers, HR can approve/refuse
+  const userRoles = Array.isArray(user?.roles) ? user.roles : [user?.role || ''];
+  const canApproveOrRefuse = userRoles.some((r) => 
+    ['admin', 'Administrator', 'HR Manager', 'hr_manager', 'payroll_officer'].includes(String(r).toLowerCase())
+  );
 
   const fetchRequests = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await axiosClient.get('/time-off/requests');
-      if (response.data && Array.isArray(response.data)) {
-        setRequests(response.data);
-      } else {
-        setRequests(initialRequests);
-      }
+      const list = Array.isArray(response.data) ? response.data : [];
+      setRequests(list);
     } catch (err) {
-      setRequests(initialRequests);
+      console.error('Failed to load leave requests:', err);
+      setError(err.response?.data?.error?.message || 'Failed to load time off requests.');
+      setRequests([]);
     } finally {
       setLoading(false);
     }
@@ -102,28 +47,63 @@ export const RequestList = ({ userRole = 'admin', onRefreshBalances }) => {
   }, []);
 
   const handleAction = (id, newStatus, employeeName) => {
-    if (!canApproveOrRefuse) return;
     setConfirmActionState({ id, newStatus, employeeName });
   };
 
-  const confirmAction = () => {
+  const confirmAction = async () => {
     if (!confirmActionState) return;
     const { id, newStatus, employeeName } = confirmActionState;
-    setRequests((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r))
-    );
-    addToast(`Leave request ${id} for ${employeeName || 'employee'} has been ${newStatus.toLowerCase()}.`, newStatus === 'Approved' ? 'success' : 'info');
-    if (isDetailModalOpen && selectedRequest) {
-      setSelectedRequest((prev) => (prev ? { ...prev, status: newStatus } : null));
+    setActionLoading(true);
+
+    try {
+      if (newStatus === 'Approved') {
+        await axiosClient.patch(`/time-off/requests/${id}/approve`);
+        addToast(`Leave request #${id} for ${employeeName || 'employee'} approved.`, 'success');
+      } else {
+        await axiosClient.patch(`/time-off/requests/${id}/refuse`);
+        addToast(`Leave request #${id} for ${employeeName || 'employee'} refused.`, 'info');
+      }
+
+      await fetchRequests();
+      if (onRefreshBalances) onRefreshBalances();
+      if (isDetailModalOpen) setIsDetailModalOpen(false);
+    } catch (err) {
+      console.error(`Failed to ${newStatus.toLowerCase()} request:`, err);
+      addToast(err.response?.data?.error?.message || `Failed to ${newStatus.toLowerCase()} leave request.`, 'error');
+    } finally {
+      setActionLoading(false);
+      setConfirmActionState(null);
     }
-    if (onRefreshBalances) onRefreshBalances();
-    setConfirmActionState(null);
   };
 
-  const filteredRequests = requests.filter((r) => {
+  const mapRequest = (r) => {
+    const empName = `${r.employee_first_name || r.first_name || ''} ${r.employee_last_name || r.last_name || ''}`.trim() || 'Employee';
+    const empCode = r.employee_code || (r.employee_id ? `EMP-${r.employee_id}` : 'N/A');
+    const typeName = r.time_off_type_name || r.leaveType || 'Leave';
+    const start = r.start_date ? String(r.start_date).slice(0, 10) : '';
+    const end = r.end_date ? String(r.end_date).slice(0, 10) : '';
+    const period = start ? `${start} to ${end}` : 'N/A';
+    const durationStr = `${r.duration} day${parseFloat(r.duration) !== 1 ? 's' : ''}`;
+
+    return {
+      ...r,
+      empName,
+      empCode,
+      typeName,
+      period,
+      durationStr,
+    };
+  };
+
+  const mappedRequests = requests.map(mapRequest);
+
+  const filteredRequests = mappedRequests.filter((r) => {
+    const query = searchQuery.toLowerCase();
     const matchesSearch =
-      r.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      r.leaveType.toLowerCase().includes(searchQuery.toLowerCase());
+      r.empName.toLowerCase().includes(query) ||
+      r.typeName.toLowerCase().includes(query) ||
+      String(r.id).includes(query);
+
     const matchesStatus = statusFilter === 'ALL' || r.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -132,7 +112,7 @@ export const RequestList = ({ userRole = 'admin', onRefreshBalances }) => {
   const paginatedRequests = filteredRequests.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* FILTER & SEARCH CONTROLS */}
       <div style={{
         display: 'flex',
@@ -146,7 +126,7 @@ export const RequestList = ({ userRole = 'admin', onRefreshBalances }) => {
         border: '1px solid #E2E8F0',
         boxShadow: 'var(--shadow-sm)'
       }}>
-        <div style={{ position: 'relative', width: '260px' }}>
+        <div style={{ position: 'relative', width: '280px' }}>
           <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
           <input
             type="text"
@@ -165,76 +145,86 @@ export const RequestList = ({ userRole = 'admin', onRefreshBalances }) => {
             style={{ width: '160px' }}
           >
             <option value="ALL">All Statuses</option>
-            <option value="Pending">Pending (Amber)</option>
-            <option value="Approved">Approved (Emerald)</option>
-            <option value="Refused">Refused (Rose)</option>
+            <option value="To Approve">To Approve</option>
+            <option value="Approved">Approved</option>
+            <option value="Refused">Refused</option>
+            <option value="Draft">Draft</option>
           </Select>
 
-          <Button 
-            variant="primary" 
-            icon={Plus}
-            onClick={() => setIsFormModalOpen(true)}
-          >
-            New Request
+          <Button variant="outline" size="sm" icon={RefreshCw} onClick={fetchRequests} loading={loading}>
+            Refresh
+          </Button>
+
+          <Button variant="accent" size="sm" icon={Plus} onClick={() => setIsFormModalOpen(true)}>
+            Request Leave
           </Button>
         </div>
       </div>
 
-      {/* REQUESTS DATA TABLE */}
+      {error && <Alert type="error">{error}</Alert>}
+
+      {/* DATA TABLE */}
       {loading ? (
         <div style={{ padding: '48px', textAlign: 'center' }}><Spinner size="lg" /></div>
       ) : paginatedRequests.length === 0 ? (
-        <EmptyState title="No Leave Requests Found" description="There are no leave requests matching your filter." />
+        <EmptyState 
+          title="No Leave Requests Found" 
+          description={searchQuery ? "No requests match your current search criteria." : "No time off requests have been logged yet."} 
+        />
       ) : (
-        <Table headers={['Employee', 'Leave Type', 'Start Date', 'End Date', 'Duration', 'Status', 'Actions']}>
-          {paginatedRequests.map((req) => {
-            const isPending = req.status === 'Pending';
-            const isApproved = req.status === 'Approved';
-            const isRefused = req.status === 'Refused';
+        <Table headers={['Employee', 'Leave Type', 'Period', 'Duration', 'Reason', 'Status', 'Actions']}>
+          {paginatedRequests.map((r) => {
+            const isApproved = r.status === 'Approved';
+            const isToApprove = r.status === 'To Approve' || r.status === 'Draft' || r.status === 'Pending';
+            const isRefused = r.status === 'Refused';
+
+            const badgeVariant = isApproved ? 'success' : isToApprove ? 'warning' : 'danger';
 
             return (
-              <tr key={req.id}>
+              <tr key={r.id}>
                 <td>
-                  <strong style={{ color: '#0F172A' }}>{req.employeeName}</strong>
-                  <div className="text-xs text-muted">ID: {req.employeeId}</div>
+                  <strong style={{ color: '#0F172A' }}>{r.empName}</strong>
+                  <div className="text-xs text-muted">ID: {r.empCode} • Req #{r.id}</div>
                 </td>
-                <td><span className="font-medium text-sm">{req.leaveType}</span></td>
-                <td>{req.startDate}</td>
-                <td>{req.endDate}</td>
-                <td><span className="font-semibold text-sm">{req.duration}</span></td>
+                <td><span className="text-sm font-semibold">{r.typeName}</span></td>
+                <td><span className="text-xs text-secondary">{r.period}</span></td>
+                <td><span className="text-sm font-medium">{r.durationStr}</span></td>
                 <td>
-                  {/* Status Color Logic: Pending -> Amber, Approved -> Emerald, Refused -> Rose */}
-                  <Badge variant={isApproved ? 'success' : isPending ? 'warning' : 'error'} dot>
-                    {req.status}
+                  <span className="text-xs text-muted" style={{ maxWidth: '180px', display: 'inline-block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {r.reason || 'No reason provided'}
+                  </span>
+                </td>
+                <td>
+                  <Badge variant={badgeVariant} dot>
+                    {r.status}
                   </Badge>
                 </td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Button 
                       variant="ghost" 
-                      size="sm" 
-                      icon={Eye}
-                      onClick={() => { setSelectedRequest(req); setIsDetailModalOpen(true); }}
-                    />
-                    {isPending && canApproveOrRefuse && (
+                      size="xs" 
+                      icon={Eye} 
+                      onClick={() => { setSelectedRequest(r); setIsDetailModalOpen(true); }}
+                    >
+                      View
+                    </Button>
+
+                    {isToApprove && canApproveOrRefuse && (
                       <>
                         <Button 
-                          variant="secondary" 
-                          size="sm" 
-                          icon={Check}
-                          onClick={() => handleAction(req.id, 'Approved', req.employeeName)}
-                          style={{ color: '#059669', borderColor: '#A7F3D0', backgroundColor: '#D1FAE5' }}
-                          title="Approve Leave"
+                          variant="success" 
+                          size="xs" 
+                          icon={Check} 
+                          onClick={() => handleAction(r.id, 'Approved', r.empName)}
                         >
                           Approve
                         </Button>
                         <Button 
                           variant="outline" 
-                          size="sm" 
-                          icon={X}
-                          onClick={() => handleAction(req.id, 'Refused', req.employeeName)}
-                          style={{ color: '#E11D48', borderColor: '#FECDD3', backgroundColor: '#FFE4E6' }}
-                          title="Refuse Leave"
+                          size="xs" 
+                          icon={X} 
+                          onClick={() => handleAction(r.id, 'Refused', r.empName)}
                         >
                           Refuse
                         </Button>
@@ -265,10 +255,10 @@ export const RequestList = ({ userRole = 'admin', onRefreshBalances }) => {
         title="Submit New Leave Request"
       >
         <RequestForm
-          onSubmit={(newReq) => {
-            setRequests((prev) => [newReq, ...prev]);
+          onSubmit={() => {
             setIsFormModalOpen(false);
-            addToast(`Submitted leave request ${newReq.id}`, 'success');
+            fetchRequests();
+            if (onRefreshBalances) onRefreshBalances();
           }}
           onCancel={() => setIsFormModalOpen(false)}
         />
@@ -279,57 +269,38 @@ export const RequestList = ({ userRole = 'admin', onRefreshBalances }) => {
         <Modal
           isOpen={isDetailModalOpen}
           onClose={() => setIsDetailModalOpen(false)}
-          title={`Time Off Request Details: ${selectedRequest.id}`}
+          title={`Time Off Request Details: #${selectedRequest.id}`}
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{
               padding: '16px',
-              backgroundColor: selectedRequest.status === 'Approved' ? '#D1FAE5' : selectedRequest.status === 'Pending' ? '#FEF3C7' : '#FFE4E6',
+              backgroundColor: selectedRequest.status === 'Approved' ? '#D1FAE5' : selectedRequest.status === 'Refused' ? '#FFE4E6' : '#FEF3C7',
               borderRadius: '10px',
               border: '1px solid #E2E8F0'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <strong>{selectedRequest.leaveType}</strong>
-                <Badge variant={selectedRequest.status === 'Approved' ? 'success' : selectedRequest.status === 'Pending' ? 'warning' : 'error'}>
+                <strong>{selectedRequest.typeName}</strong>
+                <Badge variant={selectedRequest.status === 'Approved' ? 'success' : selectedRequest.status === 'Refused' ? 'danger' : 'warning'}>
                   {selectedRequest.status}
                 </Badge>
               </div>
               <p className="text-xs text-secondary" style={{ marginTop: '4px' }}>
-                Duration: <strong>{selectedRequest.duration}</strong> ({selectedRequest.startDate} to {selectedRequest.endDate})
+                Duration: <strong>{selectedRequest.durationStr}</strong> ({selectedRequest.period})
               </p>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '0.875rem' }}>
-              <div><span className="text-muted">Employee:</span> <strong>{selectedRequest.employeeName}</strong></div>
-              <div><span className="text-muted">Reason:</span> {selectedRequest.reason}</div>
+              <div><span className="text-muted">Employee:</span> <strong>{selectedRequest.empName}</strong></div>
+              <div><span className="text-muted">Employee ID:</span> {selectedRequest.empCode}</div>
+              <div style={{ gridColumn: '1 / -1' }}><span className="text-muted">Reason:</span> {selectedRequest.reason || 'None provided'}</div>
             </div>
 
-            {/* BALANCE SNAPSHOT FROM EXISTING APPLICATION DATA */}
-            <div style={{ padding: '14px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-              <div className="text-xs font-semibold text-secondary" style={{ marginBottom: '8px' }}>Leave Allocation Balance Snapshot</div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', textAlign: 'center' }}>
-                <div style={{ padding: '8px', background: '#FFFFFF', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                  <div className="text-xs text-muted">Allocated</div>
-                  <div className="font-bold">{selectedRequest.allocatedDays || 20} days</div>
-                </div>
-                <div style={{ padding: '8px', background: '#FFFFFF', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                  <div className="text-xs text-muted">Used</div>
-                  <div className="font-bold text-secondary">{selectedRequest.usedDays || 6} days</div>
-                </div>
-                <div style={{ padding: '8px', background: '#FFFFFF', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
-                  <div className="text-xs text-muted">Remaining</div>
-                  <div className="font-bold text-success">{selectedRequest.remainingDays || 14} days</div>
-                </div>
-              </div>
-            </div>
-
-            {/* ACTIONS IF ALLOWED BY ROLE */}
-            {selectedRequest.status === 'Pending' && canApproveOrRefuse && (
+            {(selectedRequest.status === 'To Approve' || selectedRequest.status === 'Draft' || selectedRequest.status === 'Pending') && canApproveOrRefuse && (
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '12px' }}>
                 <Button 
                   variant="outline" 
                   icon={X}
-                  onClick={() => handleAction(selectedRequest.id, 'Refused', selectedRequest.employeeName)}
+                  onClick={() => handleAction(selectedRequest.id, 'Refused', selectedRequest.empName)}
                   style={{ color: '#E11D48', borderColor: '#FECDD3' }}
                 >
                   Refuse Request
@@ -337,7 +308,7 @@ export const RequestList = ({ userRole = 'admin', onRefreshBalances }) => {
                 <Button 
                   variant="accent" 
                   icon={Check}
-                  onClick={() => handleAction(selectedRequest.id, 'Approved', selectedRequest.employeeName)}
+                  onClick={() => handleAction(selectedRequest.id, 'Approved', selectedRequest.empName)}
                 >
                   Approve Request
                 </Button>
@@ -347,16 +318,19 @@ export const RequestList = ({ userRole = 'admin', onRefreshBalances }) => {
         </Modal>
       )}
 
-      {/* CONFIRMATION DIALOG FOR LEAVE APPROVAL/REFUSAL */}
+      {/* CONFIRMATION DIALOG */}
       <ConfirmModal
         isOpen={!!confirmActionState}
         onClose={() => setConfirmActionState(null)}
         onConfirm={confirmAction}
+        loading={actionLoading}
         title={`${confirmActionState?.newStatus === 'Approved' ? 'Approve' : 'Refuse'} Leave Request`}
-        message={`Are you sure you want to ${confirmActionState?.newStatus === 'Approved' ? 'approve' : 'refuse'} the leave request ${confirmActionState?.id} for ${confirmActionState?.employeeName}?`}
+        message={`Are you sure you want to ${confirmActionState?.newStatus === 'Approved' ? 'approve' : 'refuse'} leave request #${confirmActionState?.id} for ${confirmActionState?.employeeName}?`}
         confirmText={confirmActionState?.newStatus === 'Approved' ? 'Approve Request' : 'Refuse Request'}
         variant={confirmActionState?.newStatus === 'Approved' ? 'accent' : 'danger'}
       />
     </div>
   );
 };
+
+export default RequestList;

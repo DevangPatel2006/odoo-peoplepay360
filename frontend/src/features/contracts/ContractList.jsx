@@ -21,88 +21,15 @@ export const ContractList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  const initialContracts = [
-    {
-      id: 'CNT-101',
-      contractName: 'CNT-101',
-      employeeName: 'Alexander Wright',
-      employeeId: 'EMP-101',
-      startDate: '2023-01-15',
-      endDate: 'Ongoing (No End Date)',
-      wage: '8500',
-      formattedWage: '$8,500.00 / mo',
-      salaryStructure: 'Standard Software Engineer Structure',
-      workingSchedule: 'Standard 40h/week',
-      status: 'Running', // Active
-      isCurrentActive: true,
-    },
-    {
-      id: 'CNT-102',
-      contractName: 'CNT-102',
-      employeeName: 'Sophia Martinez',
-      employeeId: 'EMP-102',
-      startDate: '2023-04-10',
-      endDate: 'Ongoing',
-      wage: '6200',
-      formattedWage: '$6,200.00 / mo',
-      salaryStructure: 'HR & Administrative Structure',
-      workingSchedule: 'Standard 40h/week',
-      status: 'Running',
-      isCurrentActive: true,
-    },
-    {
-      id: 'CNT-103',
-      contractName: 'CNT-103',
-      employeeName: 'Marcus Vance',
-      employeeId: 'EMP-103',
-      startDate: '2022-09-01',
-      endDate: 'Ongoing',
-      wage: '7100',
-      formattedWage: '$7,100.00 / mo',
-      salaryStructure: 'Finance & Accounting Structure',
-      workingSchedule: 'Standard 40h/week',
-      status: 'Running',
-      isCurrentActive: true,
-    },
-    {
-      id: 'CNT-100-HIST',
-      contractName: 'CNT-100-HIST',
-      employeeName: 'Alexander Wright',
-      employeeId: 'EMP-101',
-      startDate: '2022-01-15',
-      endDate: '2023-01-14',
-      wage: '7200',
-      formattedWage: '$7,200.00 / mo',
-      salaryStructure: 'Junior Developer Structure',
-      workingSchedule: 'Standard 40h/week',
-      status: 'Expired', // Historical
-      isCurrentActive: false,
-    },
-    {
-      id: 'CNT-104-DRAFT',
-      contractName: 'CNT-104-DRAFT',
-      employeeName: 'Elena Rostova',
-      employeeId: 'EMP-104',
-      startDate: '2026-10-01',
-      endDate: 'Ongoing',
-      wage: '9500',
-      formattedWage: '$9,500.00 / mo',
-      salaryStructure: 'Executive Management Structure',
-      workingSchedule: 'Standard 40h/week',
-      status: 'Draft',
-      isCurrentActive: false,
-    },
-  ];
-
   const mapContract = (c) => ({
     ...c,
     id: `CNT-${c.id}`,
     dbId: c.id,
-    contractName: c.contract_name || c.contractName || `CNT-${c.id}`,
+    contractName: c.contract_number || c.contract_name || c.contractName || `CNT-${c.id}`,
     employeeName: c.employeeName || `${c.employee_first_name || ''} ${c.employee_last_name || ''}`.trim() || 'Employee',
     employeeId: c.employeeId || c.employee_code || `EMP-${c.employee_id}`,
-    startDate: c.startDate || (c.date_start ? String(c.date_start).split('T')[0] : ''),
-    endDate: c.endDate || (c.date_end ? String(c.date_end).split('T')[0] : 'Ongoing'),
+    startDate: c.startDate || (c.start_date ? String(c.start_date).split('T')[0] : (c.date_start ? String(c.date_start).split('T')[0] : '')),
+    endDate: c.endDate || (c.end_date ? String(c.end_date).split('T')[0] : (c.date_end ? String(c.date_end).split('T')[0] : 'Ongoing')),
     wage: c.wage || c.wage_per_month || '0',
     formattedWage: c.formattedWage || `$${parseFloat(c.wage_per_month || c.wage || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} / mo`,
     salaryStructure: c.salaryStructure || c.salary_structure_name || 'Standard Salary Structure',
@@ -116,13 +43,10 @@ export const ContractList = () => {
     try {
       const response = await axiosClient.get('/contracts');
       const list = Array.isArray(response.data) ? response.data : (response.data?.data || []);
-      if (list.length > 0) {
-        setContracts(list.map(mapContract));
-      } else {
-        setContracts(initialContracts);
-      }
+      setContracts(list.map(mapContract));
     } catch (err) {
-      setContracts(initialContracts);
+      console.error('Failed to load contracts:', err);
+      setContracts([]);
     } finally {
       setLoading(false);
     }

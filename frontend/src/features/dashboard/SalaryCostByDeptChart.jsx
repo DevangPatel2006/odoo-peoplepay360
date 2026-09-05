@@ -2,27 +2,25 @@ import React from 'react';
 import { Card } from '../../components/ui';
 
 export const SalaryCostByDeptChart = ({ data = [] }) => {
-  const defaultDeptData = [
-    { name: 'Software Engineering', count: 54, cost: 215000, percentage: 44.3, color: '#7C3AED' },
-    { name: 'Human Resources', count: 18, cost: 68000, percentage: 14.0, color: '#3B82F6' },
-    { name: 'Finance & Operations', count: 24, cost: 92000, percentage: 18.9, color: '#059669' },
-    { name: 'Sales & Marketing', count: 32, cost: 85200, percentage: 17.6, color: '#D97706' },
-    { name: 'Executive & Admin', count: 14, cost: 25000, percentage: 5.2, color: '#172554' },
-  ];
-
-  const depts = data.length > 0 ? data : defaultDeptData;
-  const totalCost = depts.reduce((acc, curr) => acc + curr.cost, 0);
+  const depts = data || [];
+  const totalCost = depts.reduce((acc, curr) => acc + (curr.cost || 0), 0);
 
   return (
     <Card 
       title="Salary Cost Breakdown by Department" 
-      subtitle={`Total Monthly Salary Cost: $${totalCost.toLocaleString()}`}
+      subtitle={depts.length > 0 ? `Total Monthly Salary Cost: $${totalCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : 'Live department payroll distribution'}
     >
-      {/* Progress Bar Stack */}
-      <div style={{
-        display: 'flex',
-        height: '14px',
-        borderRadius: '7px',
+      {depts.length === 0 ? (
+        <div className="text-sm text-secondary" style={{ padding: '24px', textAlign: 'center' }}>
+          No finalized department salary expenditure computed yet.
+        </div>
+      ) : (
+        <>
+          {/* Progress Bar Stack */}
+          <div style={{
+            display: 'flex',
+            height: '14px',
+            borderRadius: '7px',
         overflow: 'hidden',
         marginBottom: '20px',
         backgroundColor: '#E2E8F0'
@@ -56,6 +54,8 @@ export const SalaryCostByDeptChart = ({ data = [] }) => {
           </div>
         ))}
       </div>
+        </>
+      )}
     </Card>
   );
 };

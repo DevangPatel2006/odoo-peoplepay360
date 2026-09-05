@@ -1,40 +1,31 @@
-import React, { useState } from 'react';
-import { Card, Table, Badge, Button } from '../../../components/ui';
-import { Plus, Play, Eye, FileText, Calendar, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Card, Table, Badge, Button, Spinner, Alert } from '../../../components/ui';
+import { Plus, Eye, Calendar, RefreshCw } from 'lucide-react';
+import axiosClient from '../../../api/axiosClient';
 
-export const PayrunList = ({ onStartWizard }) => {
-  const [payruns, setPayruns] = useState([
-    {
-      id: 'PAYRUN-2026-09',
-      title: 'September 2026 Monthly Payrun',
-      period: '2026-09-01 to 2026-09-30',
-      employeesCount: 4,
-      totalGross: '$42,240.00',
-      totalNet: '$37,171.20',
-      status: 'Validated', // Validated | Computed | Draft | Paid
-      paymentDate: '2026-09-30',
-    },
-    {
-      id: 'PAYRUN-2026-08',
-      title: 'August 2026 Monthly Payrun',
-      period: '2026-08-01 to 2026-08-31',
-      employeesCount: 138,
-      totalGross: '$485,200.00',
-      totalNet: '$426,976.00',
-      status: 'Paid',
-      paymentDate: '2026-08-31',
-    },
-    {
-      id: 'PAYRUN-2026-07',
-      title: 'July 2026 Monthly Payrun',
-      period: '2026-07-01 to 2026-07-31',
-      employeesCount: 135,
-      totalGross: '$472,100.00',
-      totalNet: '$415,448.00',
-      status: 'Paid',
-      paymentDate: '2026-07-31',
-    },
-  ]);
+export const PayrunList = ({ onStartWizard, onSelectPayrun }) => {
+  const [payruns, setPayruns] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchPayruns = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axiosClient.get('/payruns');
+      const list = Array.isArray(response.data) ? response.data : [];
+      setPayruns(list);
+    } catch (err) {
+      console.error('Failed to load payruns:', err);
+      setError(err.response?.data?.error?.message || 'Failed to load payruns.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPayruns();
+  }, []);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -43,36 +34,87 @@ export const PayrunList = ({ onStartWizard }) => {
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#0F172A' }}>Payrun Execution Directory</h3>
           <p className="text-sm text-secondary">Historical payruns, payslip evaluation batches, and payment states.</p>
         </div>
-        <Button variant="accent" icon={Plus} onClick={onStartWizard}>
-          Launch 2-Step Payrun Wizard
-        </Button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button variant="outline" size="sm" icon={RefreshCw} onClick={fetchPayruns} loading={loading}>
+            Refresh
+          </Button>
+          <Button variant="accent" icon={Plus} onClick={onStartWizard}>
+            Launch 2-Step Payrun Wizard
+          </Button>
+        </div>
       </div>
 
-      <Table headers={['Payrun Title', 'Period', 'Employees', 'Gross Payroll', 'Net Payroll', 'Payment Date', 'Status', 'Actions']}>
-        {payruns.map((pr) => (
-          <tr key={pr.id}>
-            <td>
-              <strong style={{ color: '#0F172A' }}>{pr.title}</strong>
-              <div className="text-xs text-muted">Ref: {pr.id}</div>
-            </td>
-            <td><span className="text-sm">{pr.period}</span></td>
-            <td><span className="font-semibold text-sm">{pr.employeesCount}</span></td>
-            <td><span className="font-medium text-sm">{pr.totalGross}</span></td>
-            <td><strong className="text-success">{pr.totalNet}</strong></td>
-            <td><span className="text-xs text-secondary">{pr.paymentDate}</span></td>
-            <td>
-              <Badge variant={pr.status === 'Paid' ? 'success' : pr.status === 'Validated' ? 'accent' : 'warning'} dot>
-                {pr.status}
-              </Badge>
-            </td>
-            <td>
-              <Button variant="ghost" size="sm" icon={Eye}>
-                View Payslips
-              </Button>
-            </td>
-          </tr>
-        ))}
-      </Table>
+      {error && <Alert type="error">{error}</Alert>}
+
+      {loading ? (
+        <div style={{ padding: '32px', textAlign: 'center' }}>
+          <Spinner size="lg" />
+          <p className="text-sm text-secondary" style={{ marginTop: '8px' }}>Loading payrun batches...</p>
+        </div>
+      ) : payruns.length === 0 ? (
+        <Card>
+          <div style={{ padding: '40px 20px', textAlign: 'center', color: '#64748B' }}>
+            <Calendar size={36} style={{ margin: '0 auto 12px', opacity: 0.5 }} />
+            <h4 style={{ color: '#0F172A', marginBottom: '4px' }}>No Payruns Executed Yet</h4>
+            <p className="text-sm" style={{ marginBottom: '16px' }}>
+              Launch your first payrun to compute employee payslips, evaluate salary structures, and initiate payroll disbursement.
+            </p>
+            <Button variant="accent" icon={Plus} onClick={onStartWizard}>
+              Launch 2-Step Payrun Wizard
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <Table headers={['Payrun Title', 'Period', 'Structure', 'Employees', 'Gross Payroll', 'Net Payroll', 'Status', 'Actions']}>
+          {payruns.map((pr) => {
+            const start = pr.period_start ? String(pr.period_start).slice(0, 10) : '';
+            const end = pr.period_end ? String(pr.period_end).slice(0, 10) : '';
+            const periodStr = start ? `${start} to ${end}` : 'N/A';
+            const gross = pr.total_gross_amount ? `$${parseFloat(pr.total_gross_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '$0.00';
+            const net = pr.total_net_amount ? `$${parseFloat(pr.total_net_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '$0.00';
+            const empCount = pr.total_employees_count ?? pr.employees_count ?? 0;
+
+            const badgeVariant = pr.status === 'Paid' 
+              ? 'success' 
+              : pr.status === 'Validated' 
+                ? 'accent' 
+                : pr.status === 'Computed' 
+                  ? 'primary' 
+                  : 'warning';
+
+            return (
+              <tr key={pr.id}>
+                <td>
+                  <strong style={{ color: '#0F172A' }}>{pr.name}</strong>
+                  <div className="text-xs text-muted">ID: #{pr.id}</div>
+                </td>
+                <td><span className="text-sm">{periodStr}</span></td>
+                <td><span className="text-sm text-secondary">{pr.salary_structure_name || 'Standard'}</span></td>
+                <td><span className="font-semibold text-sm">{empCount}</span></td>
+                <td><span className="font-medium text-sm">{gross}</span></td>
+                <td><strong className="text-success">{net}</strong></td>
+                <td>
+                  <Badge variant={badgeVariant} dot>
+                    {pr.status}
+                  </Badge>
+                </td>
+                <td>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    icon={Eye}
+                    onClick={() => onSelectPayrun && onSelectPayrun(pr)}
+                  >
+                    View / Process
+                  </Button>
+                </td>
+              </tr>
+            );
+          })}
+        </Table>
+      )}
     </div>
   );
 };
+
+export default PayrunList;

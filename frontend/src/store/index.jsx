@@ -5,17 +5,14 @@ const AppContext = createContext();
 export const AppProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('peoplepay_user');
-    return savedUser ? JSON.parse(savedUser) : {
-      id: 'usr-001',
-      name: 'Devang Patel',
-      email: 'devang.patel@peoplepay360.io',
-      role: 'Admin', // Admin | HR Manager | HR Payroll Manager | HR Payroll User | Employee
-      avatar: null,
-      department: 'Executive Management'
-    };
+    try {
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
   });
 
-  const [token, setToken] = useState(() => localStorage.getItem('peoplepay_token') || 'demo-jwt-token');
+  const [token, setToken] = useState(() => localStorage.getItem('peoplepay_token') || null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');

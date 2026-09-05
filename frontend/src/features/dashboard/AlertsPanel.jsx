@@ -13,57 +13,43 @@ import { useNavigate } from 'react-router-dom';
 export const AlertsPanel = ({ warnings = [] }) => {
   const navigate = useNavigate();
 
-  const defaultWarnings = [
-    {
-      id: 'warn-01',
-      type: 'missing-contract',
-      title: '4 Employees Missing Active Contracts',
-      description: 'Alexander Wright and 3 others have no running contract for the Sep 2026 pay period.',
-      severity: 'critical',
-      targetPath: '/contracts',
-      actionLabel: 'Assign Contracts',
-      icon: FileQuestion,
-    },
-    {
-      id: 'warn-02',
-      type: 'payroll-warning',
-      title: 'Missing Bank Details for Direct Deposit',
-      description: '2 new engineering hires do not have IBAN/routing numbers configured on their profile.',
-      severity: 'critical',
-      targetPath: '/payroll',
-      actionLabel: 'Fix Bank Info',
-      icon: AlertOctagon,
-    },
-    {
-      id: 'warn-03',
-      type: 'attendance-exception',
-      title: '3 Unresolved Check-in Disputes',
-      description: 'Overtime hours correction requested by Sophia Martinez requires supervisor sign-off.',
-      severity: 'warning',
-      targetPath: '/attendance',
-      actionLabel: 'Review Disputes',
-      icon: Clock,
-    },
-    {
-      id: 'warn-04',
-      type: 'pending-leave',
-      title: '5 Pending Leave Approval Requests',
-      description: 'Annual paid leave requests submitted for next week awaiting HR approval.',
-      severity: 'warning',
-      targetPath: '/time-off',
-      actionLabel: 'Approve Leaves',
-      icon: Calendar,
-    },
-  ];
-
-  const itemsToRender = warnings.length > 0 ? warnings : defaultWarnings;
+  const itemsToRender = (warnings || []).map((w) => ({
+    id: w.id ? `warn-${w.id}` : Math.random(),
+    type: w.warning_type || 'payroll-warning',
+    title: w.warning_type === 'MissingBankDetails'
+      ? `Missing Bank Account: ${w.first_name || ''} ${w.last_name || ''}`
+      : (w.warning_type === 'DuplicatePayslip' ? 'Overlapping Payslip Alert' : (w.warning_type || 'Payroll Anomaly')),
+    description: w.message || `Anomaly identified on payrun ${w.payrun_name || ''}`,
+    severity: 'critical',
+    targetPath: '/payroll',
+    actionLabel: 'Resolve in Payroll',
+    icon: AlertOctagon,
+  }));
 
   return (
     <Card 
       title="Attention Required" 
       subtitle="Actionable anomalies & requests requiring HR/Payroll resolution"
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {itemsToRender.length === 0 ? (
+        <div style={{
+          padding: '16px',
+          backgroundColor: '#F0FDF4',
+          borderRadius: '10px',
+          border: '1px solid #BBF7D0',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          color: '#15803D',
+          fontSize: '0.875rem'
+        }}>
+          <AlertTriangle size={18} style={{ color: '#16A34A', flexShrink: 0 }} />
+          <div>
+            <strong>All systems clear:</strong> No blocking payroll warnings or unverified anomalies detected across active payruns.
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {itemsToRender.map((item) => {
           const Icon = item.icon || AlertTriangle;
           const isCritical = item.severity === 'critical';
@@ -119,7 +105,8 @@ export const AlertsPanel = ({ warnings = [] }) => {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
     </Card>
   );
 };

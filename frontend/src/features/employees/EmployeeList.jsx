@@ -55,95 +55,6 @@ export const EmployeeList = () => {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
-  // Initial Master Data
-  const initialEmployees = [
-    {
-      id: 'EMP-101',
-      employeeId: 'EMP-101',
-      firstName: 'Alexander',
-      lastName: 'Wright',
-      name: 'Alexander Wright',
-      email: 'alexander.wright@peoplepay360.io',
-      phone: '+1 (555) 234-5678',
-      department: 'Software Engineering',
-      position: 'Senior Lead Architect',
-      employeeType: 'Full-Time',
-      status: 'Active',
-      manager: 'Sarah Jenkins',
-      hireDate: '2023-01-15',
-      schedule: 'Standard 40h/week',
-      bankAccount: 'US89370001928374',
-    },
-    {
-      id: 'EMP-102',
-      employeeId: 'EMP-102',
-      firstName: 'Sophia',
-      lastName: 'Martinez',
-      name: 'Sophia Martinez',
-      email: 'sophia.m@peoplepay360.io',
-      phone: '+1 (555) 345-6789',
-      department: 'Human Resources',
-      position: 'HR Specialist',
-      employeeType: 'Full-Time',
-      status: 'Active',
-      manager: 'Sarah Jenkins',
-      hireDate: '2023-04-10',
-      schedule: 'Standard 40h/week',
-      bankAccount: 'US89370001928888',
-    },
-    {
-      id: 'EMP-103',
-      employeeId: 'EMP-103',
-      firstName: 'Marcus',
-      lastName: 'Vance',
-      name: 'Marcus Vance',
-      email: 'marcus.vance@peoplepay360.io',
-      phone: '+1 (555) 456-7890',
-      department: 'Finance & Accounting',
-      position: 'Payroll Accountant',
-      employeeType: 'Full-Time',
-      status: 'Active',
-      manager: 'Robert Chen',
-      hireDate: '2022-09-01',
-      schedule: 'Standard 40h/week',
-      bankAccount: 'US89370001929999',
-    },
-    {
-      id: 'EMP-104',
-      employeeId: 'EMP-104',
-      firstName: 'Elena',
-      lastName: 'Rostova',
-      name: 'Elena Rostova',
-      email: 'elena.rostova@peoplepay360.io',
-      phone: '+1 (555) 567-8901',
-      department: 'Sales & Marketing',
-      position: 'Marketing Director',
-      employeeType: 'Full-Time',
-      status: 'On Leave',
-      manager: 'Devang Patel',
-      hireDate: '2021-11-15',
-      schedule: 'Standard 40h/week',
-      bankAccount: 'US89370001921111',
-    },
-    {
-      id: 'EMP-105',
-      employeeId: 'EMP-105',
-      firstName: 'David',
-      lastName: 'Chen',
-      name: 'David Chen',
-      email: 'david.chen@peoplepay360.io',
-      phone: '+1 (555) 678-9012',
-      department: 'Software Engineering',
-      position: 'Backend Developer',
-      employeeType: 'Contractor',
-      status: 'Active',
-      manager: 'Alexander Wright',
-      hireDate: '2024-02-01',
-      schedule: 'Flexible 35h/week',
-      bankAccount: 'US89370001922222',
-    },
-  ];
-
   const mapEmployee = (e) => ({
     ...e,
     id: e.employee_code || e.employeeId || `EMP-${e.id}`,
@@ -168,13 +79,10 @@ export const EmployeeList = () => {
     try {
       const response = await axiosClient.get('/employees');
       const list = Array.isArray(response.data) ? response.data : (response.data?.data || []);
-      if (list.length > 0) {
-        setEmployees(list.map(mapEmployee));
-      } else {
-        setEmployees(initialEmployees);
-      }
+      setEmployees(list.map(mapEmployee));
     } catch (err) {
-      setEmployees(initialEmployees);
+      console.error('Failed to load employees:', err);
+      setEmployees([]);
     } finally {
       setLoading(false);
     }

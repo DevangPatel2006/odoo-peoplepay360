@@ -7,20 +7,22 @@ import { PayrunList } from './PayrunList';
 import { Play, ArrowLeft } from 'lucide-react';
 
 export const PayrunPage = () => {
-  const [wizardStep, setWizardStep] = useState(0); // 0: Directory, 1: Step1 Config, 2: Step2 Employees, 3: Processing/Complete
+  const [wizardStep, setWizardStep] = useState(0); // 0: Directory, 1: Step1 Config, 2: Step2 Employees, 3: Processing
   const [configData, setConfigData] = useState(null);
-  const [payrunResultData, setPayrunResultData] = useState(null);
+  const [selectedPayrun, setSelectedPayrun] = useState(null);
 
   const handleStep1Next = (config) => {
     setConfigData(config);
     setWizardStep(2);
   };
 
-  const handleStep2Create = (selectedEmployees) => {
-    setPayrunResultData({
-      config: configData,
-      selectedEmployees,
-    });
+  const handleStep2Create = (result) => {
+    setSelectedPayrun(result.payrun || result);
+    setWizardStep(3);
+  };
+
+  const handleSelectPayrun = (payrun) => {
+    setSelectedPayrun(payrun);
     setWizardStep(3);
   };
 
@@ -30,20 +32,31 @@ export const PayrunPage = () => {
         <div className="page-header-text">
           <h1 className="page-title">Payrun Engine & Processing</h1>
           <p className="page-description">
-            2-Step Payrun Creation Wizard: Configure period scope, target eligible employees, and process rule evaluations.
+            Configurable 2-Step Payrun Creation Wizard: Period scope, contract eligibility, formula calculation, and compliance validation.
           </p>
         </div>
         {wizardStep > 0 && (
           <div className="page-actions">
-            <Button variant="outline" size="sm" icon={ArrowLeft} onClick={() => setWizardStep(0)}>
-              Exit Wizard
+            <Button 
+              variant="outline" 
+              size="sm" 
+              icon={ArrowLeft} 
+              onClick={() => {
+                setSelectedPayrun(null);
+                setWizardStep(0);
+              }}
+            >
+              Back to Payrun Directory
             </Button>
           </div>
         )}
       </div>
 
       {wizardStep === 0 && (
-        <PayrunList onStartWizard={() => setWizardStep(1)} />
+        <PayrunList 
+          onStartWizard={() => setWizardStep(1)} 
+          onSelectPayrun={handleSelectPayrun}
+        />
       )}
 
       {wizardStep === 1 && (
@@ -64,8 +77,11 @@ export const PayrunPage = () => {
 
       {wizardStep === 3 && (
         <PayrunProcessing
-          payrunData={payrunResultData}
-          onDone={() => setWizardStep(0)}
+          payrun={selectedPayrun}
+          onDone={() => {
+            setSelectedPayrun(null);
+            setWizardStep(0);
+          }}
         />
       )}
     </div>

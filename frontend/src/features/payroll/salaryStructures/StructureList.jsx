@@ -1,64 +1,55 @@
-import React, { useState } from 'react';
-import { Card, Table, Badge, Button, Modal } from '../../../components/ui';
+import React, { useState, useEffect } from 'react';
+import { Card, Table, Badge, Button, Modal, Spinner, Alert, EmptyState } from '../../../components/ui';
 import { StructureForm } from './StructureForm';
-import { Plus, Edit, Trash2, Layers, CheckCircle2, ArrowRight } from 'lucide-react';
-
+import { Plus, Edit, Trash2, Layers, RefreshCw } from 'lucide-react';
 import { useApp } from '../../../store';
 import { ConfirmModal } from '../../../components/ui';
+import axiosClient from '../../../api/axiosClient';
 
 export const StructureList = () => {
   const { addToast } = useApp();
-  const [structures, setStructures] = useState([
-    {
-      id: 'STRUCT-SWE',
-      code: 'STRUCT_SWE_01',
-      name: 'Standard Software Engineer Structure',
-      description: 'Standard base wage + 40% HRA + $200 Conveyance - 12% Income Tax',
-      status: 'Active',
-      ruleCodes: ['BASIC', 'HRA', 'CONV', 'GROSS', 'TAX', 'NET'],
-      assignedContractsCount: 54,
-    },
-    {
-      id: 'STRUCT-EXEC',
-      code: 'STRUCT_EXEC_01',
-      name: 'Executive Management Structure',
-      description: 'Executive base wage + HRA + Leadership allowance - Tax withholding',
-      status: 'Active',
-      ruleCodes: ['BASIC', 'HRA', 'GROSS', 'TAX', 'NET'],
-      assignedContractsCount: 14,
-    },
-    {
-      id: 'STRUCT-HR',
-      code: 'STRUCT_HR_01',
-      name: 'HR & Administrative Structure',
-      description: 'Administrative staff salary structure with standard allowances',
-      status: 'Active',
-      ruleCodes: ['BASIC', 'HRA', 'CONV', 'GROSS', 'TAX', 'NET'],
-      assignedContractsCount: 18,
-    },
-  ]);
+  const [structures, setStructures] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingStructure, setEditingStructure] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-  const handleSaveStructure = (savedData) => {
-    if (editingStructure) {
-      setStructures((prev) => prev.map((s) => (s.id === savedData.id ? savedData : s)));
-      addToast(`Updated salary structure ${savedData.name}`, 'success');
-    } else {
-      setStructures((prev) => [...prev, savedData]);
-      addToast(`Created salary structure ${savedData.name}`, 'success');
+  const fetchStructures = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axiosClient.get('/salary-structures');
+      const list = Array.isArray(response.data) ? response.data : [];
+      setStructures(list);
+    } catch (err) {
+      console.error('Failed to load salary structures:', err);
+      setError(err.response?.data?.error?.message || 'Failed to load salary structures.');
+      setStructures([]);
+    } finally {
+      setLoading(false);
     }
-    setIsFormModalOpen(false);
-    setEditingStructure(null);
   };
 
-  const confirmDelete = () => {
-    if (deleteTarget) {
-      setStructures((prev) => prev.filter((s) => s.id !== deleteTarget.id));
+  useEffect(() => {
+    fetchStructures();
+  }, []);
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await axiosClient.delete(`/salary-structures/${deleteTarget.id}`);
       addToast(`Deleted salary structure ${deleteTarget.name}`, 'info');
       setDeleteTarget(null);
+      fetchStructures();
+    } catch (err) {
+      console.error('Failed to delete salary structure:', err);
+      addToast(err.response?.data?.error?.message || 'Failed to delete salary structure.', 'error');
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -67,94 +58,103 @@ export const StructureList = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#0F172A' }}>Configured Salary Structures</h3>
-          <p className="text-sm text-secondary">Structures bind salary rules together to evaluate contract wages.</p>
+          <p className="text-sm text-secondary">Structures define salary rule groupings evaluated for employee contracts.</p>
         </div>
-        <Button 
-          variant="primary" 
-          size="sm" 
-          icon={Plus}
-          onClick={() => { setEditingStructure(null); setIsFormModalOpen(true); }}
-        >
-          Create Structure
-        </Button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <Button variant="outline" size="sm" icon={RefreshCw} onClick={fetchStructures} loading={loading}>
+            Refresh
+          </Button>
+          <Button 
+            variant="primary" 
+            size="sm" 
+            icon={Plus}
+            onClick={() => { setEditingStructure(null); setIsFormModalOpen(true); }}
+          >
+            Create Structure
+          </Button>
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
-        {structures.map((struct) => (
-          <Card key={struct.id}>
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <div>
-                <h4 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#0F172A' }}>{struct.name}</h4>
-                <span className="font-mono text-xs text-accent font-semibold">{struct.code}</span>
-              </div>
-              <Badge variant={struct.status === 'Active' ? 'success' : 'neutral'} dot>
-                {struct.status}
-              </Badge>
-            </div>
+      {error && <Alert type="error">{error}</Alert>}
 
-            <p className="text-xs text-secondary" style={{ marginBottom: '14px' }}>
-              {struct.description}
-            </p>
-
-            {/* INCLUDED RULES CHIPS */}
-            <div style={{ padding: '12px', backgroundColor: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0', marginBottom: '16px' }}>
-              <div className="text-xs font-semibold text-muted" style={{ marginBottom: '8px', textTransform: 'uppercase' }}>
-                Bound Evaluation Sequence ({struct.ruleCodes.length} Rules)
+      {loading ? (
+        <div style={{ padding: '48px', textAlign: 'center' }}><Spinner size="lg" /></div>
+      ) : structures.length === 0 ? (
+        <EmptyState 
+          title="No Salary Structures Configured" 
+          description="Create your first salary structure to bind salary rules together." 
+        />
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
+          {structures.map((struct) => (
+            <Card key={struct.id}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div>
+                  <h4 style={{ fontSize: '1.125rem', fontWeight: 600, color: '#0F172A' }}>{struct.name}</h4>
+                  <span className="font-mono text-xs text-accent font-semibold">Type: {struct.structure_type || 'Regular'}</span>
+                </div>
+                <Badge variant={struct.is_active ? 'success' : 'neutral'} dot>
+                  {struct.is_active ? 'Active' : 'Inactive'}
+                </Badge>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {struct.ruleCodes.map((code, idx) => (
-                  <React.Fragment key={code}>
-                    <Badge variant="accent">{code}</Badge>
-                    {idx < struct.ruleCodes.length - 1 && <span className="text-xs text-muted">→</span>}
-                  </React.Fragment>
-                ))}
-              </div>
-            </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span className="text-xs text-secondary">
-                Assigned to <strong>{struct.assignedContractsCount || 0}</strong> running contracts
-              </span>
-              <div style={{ display: 'flex', gap: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#64748B', fontSize: '0.875rem', marginBottom: '16px' }}>
+                <Layers size={16} />
+                <span>Structure ID: #{struct.id}</span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid #E2E8F0', paddingTop: '12px' }}>
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   size="sm" 
-                  icon={Edit}
+                  icon={Edit} 
                   onClick={() => { setEditingStructure(struct); setIsFormModalOpen(true); }}
-                />
+                >
+                  Edit
+                </Button>
                 <Button 
-                  variant="ghost" 
+                  variant="outline" 
                   size="sm" 
-                  icon={Trash2}
+                  icon={Trash2} 
                   onClick={() => setDeleteTarget(struct)}
-                  style={{ color: '#E11D48' }}
-                />
+                  style={{ color: '#E11D48', borderColor: '#FECDD3' }}
+                >
+                  Delete
+                </Button>
               </div>
-            </div>
-          </Card>
-        ))}
-      </div>
+            </Card>
+          ))}
+        </div>
+      )}
 
+      {/* CREATE / EDIT MODAL */}
       <Modal
         isOpen={isFormModalOpen}
         onClose={() => { setIsFormModalOpen(false); setEditingStructure(null); }}
-        size="lg"
-        title={editingStructure ? `Edit Salary Structure: ${editingStructure.name}` : 'Create Salary Structure'}
+        title={editingStructure ? `Edit Structure: ${editingStructure.name}` : 'Create New Salary Structure'}
       >
         <StructureForm
           structure={editingStructure}
-          onSave={handleSaveStructure}
-          onCancel={() => { setIsFormModalOpen(false); setEditingStructure(null); }}
+          onSave={() => {
+            setIsFormModalOpen(false);
+            setEditingStructure(null);
+            fetchStructures();
+          }}
+          onCancel={() => {
+            setIsFormModalOpen(false);
+            setEditingStructure(null);
+          }}
         />
       </Modal>
 
-      {/* CONFIRMATION DIALOG FOR STRUCTURE DELETION */}
+      {/* DELETE CONFIRM MODAL */}
       <ConfirmModal
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
+        loading={deleting}
         title="Delete Salary Structure"
-        message={`Are you sure you want to delete salary structure ${deleteTarget?.name}? Contracts referencing this structure will need re-assignment.`}
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? Contracts linked to this structure may be affected.`}
         confirmText="Delete Structure"
         variant="danger"
       />

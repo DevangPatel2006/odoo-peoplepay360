@@ -6,12 +6,13 @@ import morgan from 'morgan';
 import routes from './routes/index.js';
 import errorHandler from './middleware/errorHandler.js';
 import { fail } from './common/utils/apiResponse.js';
+import env from './config/env.js';
 
 const app = express();
 
 // Security and utility middlewares
 app.use(helmet());
-app.use(cors());
+app.use(cors({ origin: env.corsOrigin === '*' ? true : env.corsOrigin }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
