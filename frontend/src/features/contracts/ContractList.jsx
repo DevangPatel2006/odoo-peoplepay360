@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Badge, Button, Input, Select, Modal, Pagination, EmptyState, Spinner, Alert } from '../../components/ui';
 import { ContractForm } from './ContractForm';
-import { Plus, Search, FileText, CheckCircle2, Clock, Eye, Edit, Trash2, Calendar } from 'lucide-react';
+import { Plus, Search, FileText, CheckCircle2, Clock, Eye, Edit, Trash2, Calendar, Play } from 'lucide-react';
 import axiosClient from '../../api/axiosClient';
 
 import { useApp } from '../../store';
@@ -70,22 +70,41 @@ export const ContractList = () => {
   const paginatedContracts = filteredContracts.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const handleSaveContract = (savedData) => {
-    if (editingContract) {
-      setContracts((prev) => prev.map((c) => (c.id === savedData.id ? savedData : c)));
-      addToast(`Updated contract ${savedData.contractName}`, 'success');
-    } else {
-      setContracts((prev) => [savedData, ...prev]);
-      addToast(`Created new contract ${savedData.contractName}`, 'success');
-    }
+    fetchContracts();
     setIsFormModalOpen(false);
     setEditingContract(null);
+    const contractNum = savedData?.contract_number || savedData?.contractName || 'contract';
+    addToast(
+      editingContract
+        ? `Updated contract ${contractNum}`
+        : `Created new contract ${contractNum}`,
+      'success'
+    );
   };
 
-  const confirmDelete = () => {
-    if (deleteTarget) {
-      setContracts((prev) => prev.filter((c) => c.id !== deleteTarget.id));
-      addToast(`Deleted contract record ${deleteTarget.contractName}`, 'info');
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await axiosClient.delete(`/contracts/${deleteTarget.dbId || deleteTarget.id}`);
+      addToast(`Deleted contract record ${deleteTarget.contractName || deleteTarget.contract_number}`, 'info');
       setDeleteTarget(null);
+      fetchContracts();
+    } catch (err) {
+      addToast(err.response?.data?.error?.message || 'Failed to delete contract.', 'error');
+    }
+  };
+
+  const handleActivateContract = async (cnt) => {
+    try {
+      await axiosClient.post(`/contracts/${cnt.dbId || cnt.id}/activate`);
+      addToast(`Activated contract ${cnt.contractName || cnt.contract_number}. Status is now Running.`, 'success');
+      fetchContracts();
+      if (selectedContract && (selectedContract.dbId === cnt.dbId || selectedContract.id === cnt.id)) {
+        setIsDetailModalOpen(false);
+        setSelectedContract(null);
+      }
+    } catch (err) {
+      addToast(err.response?.data?.error?.message || 'Failed to activate contract.', 'error');
     }
   };
 
@@ -201,6 +220,16 @@ export const ContractList = () => {
                 </td>
                 <td>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {isDraft && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        icon={Play}
+                        title="Activate Contract"
+                        onClick={() => handleActivateContract(cnt)}
+                        style={{ color: '#059669' }}
+                      />
+                    )}
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -258,6 +287,22 @@ export const ContractList = () => {
           isOpen={isDetailModalOpen}
           onClose={() => setIsDetailModalOpen(false)}
           title={`Contract Master Details: ${selectedContract.contractName}`}
+          footer={
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', width: '100%' }}>
+              <Button variant="outline" onClick={() => setIsDetailModalOpen(false)}>
+                Close
+              </Button>
+              {selectedContract.status === 'Draft' && (
+                <Button 
+                  variant="accent" 
+                  icon={Play}
+                  onClick={() => handleActivateContract(selectedContract)}
+                >
+                  Activate Contract
+                </Button>
+              )}
+            </div>
+          }
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div style={{

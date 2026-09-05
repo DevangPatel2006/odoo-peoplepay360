@@ -20,5 +20,6 @@ router.get('/:id', requirePermission('Contracts', 'read'), contractController.ge
 router.post('/', requirePermission('Contracts', 'create'), validate(createContractSchema), contractController.create);
 router.patch('/:id', requirePermission('Contracts', 'update'), validate(updateContractSchema), contractController.update);
 router.delete('/:id', requirePermission('Contracts', 'delete'), contractController.remove);
+router.post('/:id/activate', requirePermission('Contracts', 'update'), contractController.activate);
 
 export default router;

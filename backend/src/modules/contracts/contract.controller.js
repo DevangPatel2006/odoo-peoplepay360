@@ -26,6 +26,11 @@ export const remove = async (req, res) => {
   return ok(res, { message: 'Contract deleted successfully' });
 };
 
+export const activate = async (req, res) => {
+  const contract = await contractService.activateContract(req.params.id, req.user);
+  return ok(res, contract);
+};
+
 export const getApplicable = async (req, res) => {
   const contract = await contractService.resolveApplicableContract(req.user, req.query);
   return ok(res, contract);
@@ -37,5 +42,6 @@ export default {
   create,
   update,
   remove,
+  activate,
   getApplicable,
 };

@@ -1,63 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Badge, Button, Modal, Spinner, Alert } from '../../components/ui';
+import { Card, Table, Badge, Button, Modal, Spinner, Alert, ConfirmModal } from '../../components/ui';
 import { ScheduleForm } from './ScheduleForm';
 import { Plus, Clock, Calendar, Edit, Trash2, CheckCircle2 } from 'lucide-react';
 import axiosClient from '../../api/axiosClient';
+import { useApp } from '../../store';
 
 export const ScheduleList = () => {
+  const { addToast } = useApp();
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState(null);
-  const [notificationMsg, setNotificationMsg] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
-  const initialSchedules = [
-    {
-      id: 'SCH-001',
-      name: 'Standard 40h/week (Mon-Fri 9-5)',
-      workingDays: 'Monday - Friday',
-      startTime: '09:00',
-      endTime: '17:00',
-      breakMinutes: '60',
-      expectedHours: '40.0',
-      isDefault: true,
-      activeAssignedEmployees: 112,
-    },
-    {
-      id: 'SCH-002',
-      name: 'Flexible 35h/week',
-      workingDays: 'Monday - Friday',
-      startTime: '09:00',
-      endTime: '16:30',
-      breakMinutes: '30',
-      expectedHours: '35.0',
-      isDefault: false,
-      activeAssignedEmployees: 18,
-    },
-    {
-      id: 'SCH-003',
-      name: 'Rotational Shift Pattern A',
-      workingDays: 'Monday - Saturday',
-      startTime: '08:00',
-      endTime: '16:00',
-      breakMinutes: '60',
-      expectedHours: '42.0',
-      isDefault: false,
-      activeAssignedEmployees: 12,
-    },
-  ];
+  const mapSchedule = (sch) => {
+    const lines = sch.lines || [];
+    const firstLine = lines[0] || {};
+    return {
+      ...sch,
+      id: sch.id,
+      name: sch.name,
+      workingDays: sch.workingDays || (lines.length > 0 ? `${lines[0]?.day_of_week} - ${lines[lines.length - 1]?.day_of_week}` : 'Monday - Friday'),
+      startTime: sch.startTime || (firstLine.start_time ? String(firstLine.start_time).slice(0, 5) : '09:00'),
+      endTime: sch.endTime || (firstLine.end_time ? String(firstLine.end_time).slice(0, 5) : '17:00'),
+      breakMinutes: sch.breakMinutes || (firstLine.break_minutes ?? 60),
+      expectedHours: sch.expectedHours || sch.hours_per_week || '40.0',
+      isDefault: sch.isDefault || sch.calendar_type === 'Standard',
+      activeAssignedEmployees: sch.activeAssignedEmployees || 0,
+    };
+  };
 
   const fetchSchedules = async () => {
     setLoading(true);
     try {
       const response = await axiosClient.get('/working-schedules');
-      if (response.data && Array.isArray(response.data)) {
-        setSchedules(response.data);
-      } else {
-        setSchedules(initialSchedules);
-      }
+      const list = Array.isArray(response.data) ? response.data : (response.data?.data || []);
+      setSchedules(list.map(mapSchedule));
     } catch (err) {
-      setSchedules(initialSchedules);
+      console.error('Failed to load working schedules:', err);
+      setSchedules([]);
     } finally {
       setLoading(false);
     }
@@ -68,23 +49,26 @@ export const ScheduleList = () => {
   }, []);
 
   const handleSaveSchedule = (savedData) => {
-    if (editingSchedule) {
-      setSchedules((prev) => prev.map((s) => (s.id === savedData.id ? savedData : s)));
-      setNotificationMsg(`Updated schedule pattern ${savedData.name}`);
-    } else {
-      setSchedules((prev) => [savedData, ...prev]);
-      setNotificationMsg(`Created new schedule pattern ${savedData.name}`);
-    }
+    fetchSchedules();
     setIsFormModalOpen(false);
     setEditingSchedule(null);
-    setTimeout(() => setNotificationMsg(''), 4000);
+    addToast(
+      editingSchedule
+        ? `Updated schedule pattern ${savedData?.name || ''}`
+        : `Created new schedule pattern ${savedData?.name || ''}`,
+      'success'
+    );
   };
 
-  const handleDeleteSchedule = (id, name) => {
-    if (window.confirm(`Are you sure you want to delete schedule ${name}?`)) {
-      setSchedules((prev) => prev.filter((s) => s.id !== id));
-      setNotificationMsg(`Deleted schedule ${name}`);
-      setTimeout(() => setNotificationMsg(''), 4000);
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await axiosClient.delete(`/working-schedules/${deleteTarget.id}`);
+      addToast(`Deleted schedule pattern ${deleteTarget.name}`, 'info');
+      setDeleteTarget(null);
+      fetchSchedules();
+    } catch (err) {
+      addToast(err.response?.data?.error?.message || 'Failed to delete schedule pattern.', 'error');
     }
   };
 
@@ -172,7 +156,7 @@ export const ScheduleList = () => {
                       variant="ghost" 
                       size="sm" 
                       icon={Trash2}
-                      onClick={() => handleDeleteSchedule(sch.id, sch.name)}
+                      onClick={() => setDeleteTarget(sch)}
                       style={{ color: '#E11D48' }}
                     />
                   )}
@@ -195,6 +179,17 @@ export const ScheduleList = () => {
           onCancel={() => { setIsFormModalOpen(false); setEditingSchedule(null); }}
         />
       </Modal>
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Delete Working Schedule"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? Contracts and employee records tied to this pattern may be affected.`}
+        confirmText="Delete Schedule"
+        variant="danger"
+      />
     </div>
   );
 };

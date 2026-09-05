@@ -17,14 +17,14 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
   const [apiError, setApiError] = useState('');
 
   const [formData, setFormData] = useState({
-    contract_number: contract?.contractName || contract?.contract_number || `CON/${new Date().getFullYear()}/${Math.floor(1000 + Math.random() * 9000)}`,
+    contract_number: contract?.contractName || contract?.contract_number || '',
     employee_id: contract?.employee_id ? String(contract.employee_id) : '',
     start_date: contract?.startDate ? String(contract.startDate).split('T')[0] : (contract?.start_date ? String(contract.start_date).split('T')[0] : new Date().toISOString().split('T')[0]),
     end_date: contract?.endDate && contract.endDate !== 'Ongoing' ? String(contract.endDate).split('T')[0] : (contract?.end_date ? String(contract.end_date).split('T')[0] : ''),
     wage_per_month: contract?.wage || contract?.wage_per_month || '',
     salary_structure_id: contract?.salary_structure_id ? String(contract.salary_structure_id) : '',
     working_schedule_id: contract?.working_schedule_id ? String(contract.working_schedule_id) : '',
-    status: contract?.status || 'Running',
+    status: contract?.status || 'Draft',
     notes: contract?.notes || '',
   });
 
@@ -100,7 +100,6 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
       const selectedEmp = employees.find((e) => String(e.id) === String(formData.employee_id));
 
       const payload = {
-        contract_number: formData.contract_number.trim(),
         employee_id: Number(formData.employee_id),
         department_id: selectedEmp?.department_id || null,
         job_position_id: selectedEmp?.job_position_id || null,
@@ -113,13 +112,17 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
         notes: formData.notes.trim() || null,
       };
 
+      if (formData.contract_number && formData.contract_number.trim()) {
+        payload.contract_number = formData.contract_number.trim();
+      }
+
       let res;
       if (isEditing) {
         res = await axiosClient.patch(`/contracts/${targetId}`, payload);
-        addToast(`Contract ${payload.contract_number} updated successfully!`, 'success');
+        addToast(`Contract ${res.data?.contract_number || payload.contract_number || ''} updated successfully!`, 'success');
       } else {
         res = await axiosClient.post('/contracts', payload);
-        addToast(`Contract ${payload.contract_number} created successfully!`, 'success');
+        addToast(`Contract ${res.data?.contract_number || ''} created successfully!`, 'success');
       }
 
       if (onSave) onSave(res.data);
@@ -152,7 +155,9 @@ export const ContractForm = ({ contract, onSave, onCancel }) => {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
           <Input
-            label="Contract Number *"
+            label="Contract Number"
+            placeholder="Auto-generated if left blank (e.g. CON/2026/0001)"
+            helpText="Leave blank for automatic sequential numbering"
             value={formData.contract_number}
             onChange={(e) => handleChange('contract_number', e.target.value)}
           />

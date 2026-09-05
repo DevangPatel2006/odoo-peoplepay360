@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Input, Select, Alert } from '../../components/ui';
 import { Save, Clock, Calendar, Sun } from 'lucide-react';
+import axiosClient from '../../api/axiosClient';
 
 export const ScheduleForm = ({ schedule, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -15,7 +16,7 @@ export const ScheduleForm = ({ schedule, onSave, onCancel }) => {
 
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
+  const [apiError, setApiError] = useState('');
 
   const validate = () => {
     const newErrors = {};
@@ -37,28 +38,51 @@ export const ScheduleForm = ({ schedule, onSave, onCancel }) => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
 
     setLoading(true);
-    setSuccessMsg('');
+    setApiError('');
 
-    setTimeout(() => {
+    try {
+      const days = formData.workingDays === 'Monday - Saturday'
+        ? ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        : ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+      const lines = days.map((day) => ({
+        day_of_week: day,
+        start_time: formData.startTime.length === 5 ? `${formData.startTime}:00` : formData.startTime,
+        end_time: formData.endTime.length === 5 ? `${formData.endTime}:00` : formData.endTime,
+        break_minutes: parseInt(formData.breakMinutes, 10) || 0,
+      }));
+
+      const payload = {
+        name: formData.name.trim(),
+        calendar_type: 'Standard',
+        timezone: 'UTC',
+        status: 'Active',
+        lines,
+      };
+
+      let res;
+      if (schedule?.id && typeof schedule.id === 'number') {
+        res = await axiosClient.patch(`/working-schedules/${schedule.id}`, payload);
+      } else {
+        res = await axiosClient.post('/working-schedules', payload);
+      }
+      onSave(res.data);
+    } catch (err) {
+      console.error('Failed to save schedule:', err);
+      setApiError(err.response?.data?.error?.message || 'Failed to save working schedule.');
+    } finally {
       setLoading(false);
-      setSuccessMsg(`Schedule ${formData.name} saved!`);
-      setTimeout(() => {
-        onSave({
-          ...formData,
-          id: schedule?.id || `SCH-${Math.floor(100 + Math.random() * 900)}`,
-        });
-      }, 400);
-    }, 300);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {successMsg && <Alert type="success">{successMsg}</Alert>}
+      {apiError && <Alert type="error">{apiError}</Alert>}
 
       <Input
         label="Schedule Name *"

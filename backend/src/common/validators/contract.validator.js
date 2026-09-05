@@ -2,7 +2,7 @@ import Joi from 'joi';
 import { CONTRACT_STATUSES } from '../constants/enums.js';
 
 export const createContractSchema = Joi.object({
-  contract_number: Joi.string().trim().max(100).required(),
+  contract_number: Joi.string().trim().max(100).allow(null, '').optional(),
   employee_id: Joi.number().integer().positive().required(),
   department_id: Joi.number().integer().positive().allow(null),
   job_position_id: Joi.number().integer().positive().allow(null),
