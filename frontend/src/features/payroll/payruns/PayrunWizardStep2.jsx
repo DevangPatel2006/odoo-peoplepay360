@@ -32,6 +32,7 @@ export const PayrunWizardStep2 = ({ config, onBack, onCreatePayrun }) => {
 
         const eligibleList = Array.isArray(response.data) ? response.data : [];
         const skippedList = Array.isArray(response.meta?.skipped) ? response.meta.skipped : [];
+        const warningsList = Array.isArray(response.meta?.warnings) ? response.meta.warnings : [];
 
         const mappedEligible = eligibleList.map((item) => {
           const emp = item.employee;
@@ -46,6 +47,27 @@ export const PayrunWizardStep2 = ({ config, onBack, onCreatePayrun }) => {
             salary: contract?.wage_per_month ? `$${parseFloat(contract.wage_per_month).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : 'N/A',
             eligibility: 'Eligible',
             warning: null,
+            selected: true,
+          };
+        });
+
+        const mappedWarnings = warningsList.map((item) => {
+          const emp = item.employee;
+          const contract = item.resolved_contract;
+          const warningText = Array.isArray(item.warning_reasons)
+            ? item.warning_reasons.join(', ')
+            : (item.warning || item.reason || 'Flagged issue detected');
+
+          return {
+            id: `WRN-${emp.id}`,
+            numericId: emp.id,
+            name: `${emp.first_name} ${emp.last_name}`,
+            department: emp.department_name || 'General',
+            departmentId: emp.department_id,
+            contractId: contract?.contract_number || (contract?.id ? `CON-${contract.id}` : 'None'),
+            salary: contract?.wage_per_month ? `$${parseFloat(contract.wage_per_month).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : 'N/A',
+            eligibility: 'Warning',
+            warning: warningText,
             selected: true,
           };
         });
@@ -66,7 +88,7 @@ export const PayrunWizardStep2 = ({ config, onBack, onCreatePayrun }) => {
           };
         });
 
-        let combined = [...mappedEligible, ...mappedSkipped];
+        let combined = [...mappedEligible, ...mappedWarnings, ...mappedSkipped];
 
         // If department filter specified in step 1 and not ALL
         if (config.department && config.department !== 'ALL') {

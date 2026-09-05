@@ -14,7 +14,7 @@ export const getById = async (req, res) => {
 
 export const preview = async (req, res) => {
   const result = await payrunService.previewEligibleEmployees(req.user, req.body);
-  return ok(res, result.eligible, { ...result.counts, skipped: result.skipped });
+  return ok(res, result.eligible, { ...result.counts, skipped: result.skipped, warnings: result.warnings });
 };
 
 export const create = async (req, res) => {
