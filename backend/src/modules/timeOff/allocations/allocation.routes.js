@@ -17,6 +17,7 @@ router.get('/', requirePermission('TimeOff', 'read'), validate(queryAllocationSc
 router.get('/:id', requirePermission('TimeOff', 'read'), allocationController.getById);
 router.post('/', requirePermission('TimeOff', 'create'), validate(createAllocationSchema), allocationController.create);
 router.patch('/:id', requirePermission('TimeOff', 'update'), validate(updateAllocationSchema), allocationController.update);
+router.put('/:id', requirePermission('TimeOff', 'update'), validate(updateAllocationSchema), allocationController.update);
 router.delete('/:id', requirePermission('TimeOff', 'delete'), allocationController.remove);
 
 router.patch('/:id/approve', requirePermission('TimeOff', 'approve'), allocationController.approve);

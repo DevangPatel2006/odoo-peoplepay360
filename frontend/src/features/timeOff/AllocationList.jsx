@@ -6,12 +6,18 @@ import axiosClient from '../../api/axiosClient';
 import { useApp } from '../../store';
 
 export const AllocationList = ({ onRefreshBalances }) => {
-  const { addToast } = useApp();
+  const { user, addToast } = useApp();
   const [allocations, setAllocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [actionLoadingId, setActionLoadingId] = useState(null);
+
+  const userRoles = Array.isArray(user?.roles) ? user.roles : [user?.role || ''];
+  const canManageAllocations = userRoles.some((r) => {
+    const role = String(r).toLowerCase().replace(/_/g, ' ').trim();
+    return ['admin', 'administrator', 'hr manager', 'hr payroll user', 'hr payroll manager'].includes(role);
+  });
 
   const fetchAllocations = async () => {
     setLoading(true);
@@ -72,9 +78,11 @@ export const AllocationList = ({ onRefreshBalances }) => {
           <Button variant="outline" size="sm" icon={RefreshCw} onClick={fetchAllocations} loading={loading}>
             Refresh
           </Button>
-          <Button variant="accent" size="sm" icon={Plus} onClick={() => setIsFormOpen(true)}>
-            Grant Allocation
-          </Button>
+          {canManageAllocations && (
+            <Button variant="accent" size="sm" icon={Plus} onClick={() => setIsFormOpen(true)}>
+              Grant Allocation
+            </Button>
+          )}
         </div>
       </div>
 
@@ -125,7 +133,7 @@ export const AllocationList = ({ onRefreshBalances }) => {
                   </Badge>
                 </td>
                 <td>
-                  {isToApprove ? (
+                  {isToApprove && canManageAllocations ? (
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <Button 
                         size="xs" 

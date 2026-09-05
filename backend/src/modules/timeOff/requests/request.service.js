@@ -164,20 +164,32 @@ export const approveRequest = async (id, user, data = {}) => {
     throw new AppError('Request is already approved', 400, 'ALREADY_APPROVED');
   }
 
-  if (request.requires_allocation && !request.allocation_id) {
-    throw new AppError(
-      'This time off type requires an allocation, but none is linked to this request. Please link an approved allocation before approving.',
-      422,
-      'ALLOCATION_REQUIRED'
-    );
-  }
+  let finalAllocationId = data.allocation_id || request.allocation_id;
 
-  if (request.allocation_id) {
+  if (request.requires_allocation) {
+    if (!finalAllocationId) {
+      throw new AppError(
+        'This time off type requires an allocation, but none is linked to this request. Please link an approved allocation before approving.',
+        422,
+        'ALLOCATION_REQUIRED'
+      );
+    }
+
     const alloc = await timeOffModel.findAllocationById(
-      request.allocation_id,
+      finalAllocationId,
       user.companyId
     );
-    if (alloc && parseFloat(request.duration) > parseFloat(alloc.remaining_amount)) {
+    if (!alloc) {
+      throw new AppError('Linked allocation not found', 404, 'NOT_FOUND');
+    }
+    if (alloc.status !== 'Approved') {
+      throw new AppError(
+        `Linked allocation #${finalAllocationId} is not approved yet (status: ${alloc.status}). Please approve the allocation first before approving this leave request.`,
+        422,
+        'ALLOCATION_NOT_APPROVED'
+      );
+    }
+    if (parseFloat(request.duration) > parseFloat(alloc.remaining_amount)) {
       throw new AppError(
         `Requested duration (${request.duration}) exceeds remaining allocation balance (${alloc.remaining_amount})`,
         422,
@@ -190,6 +202,7 @@ export const approveRequest = async (id, user, data = {}) => {
     // DB trigger fn_deduct_time_off_allocation() automatically deducts allocation balance
     await timeOffModel.updateRequest(parseInt(id, 10), {
       status: 'Approved',
+      allocation_id: finalAllocationId || null,
       approver_id: user.employeeId || null,
       reason: data.reason || request.reason,
     });
@@ -227,6 +240,17 @@ export const refuseRequest = async (id, user, data = {}) => {
   const request = await timeOffModel.findRequestById(parseInt(id, 10), user.companyId);
   if (!request) {
     throw new AppError('Time off request not found', 404, 'NOT_FOUND');
+  }
+
+  // If request was previously approved and had an allocation, restore the deducted balance
+  if (request.status === 'Approved' && request.allocation_id) {
+    await query(
+      `UPDATE time_off_allocations 
+       SET taken_amount = GREATEST(0, taken_amount - $1),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2`,
+      [parseFloat(request.duration || 0), request.allocation_id]
+    );
   }
 
   await timeOffModel.updateRequest(parseInt(id, 10), {

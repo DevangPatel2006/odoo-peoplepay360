@@ -16,6 +16,7 @@ router.get('/', requirePermission('TimeOff', 'read'), timeOffTypeController.list
 router.get('/:id', requirePermission('TimeOff', 'read'), timeOffTypeController.getById);
 router.post('/', requirePermission('TimeOff', 'create'), validate(createTimeOffTypeSchema), timeOffTypeController.create);
 router.patch('/:id', requirePermission('TimeOff', 'update'), validate(updateTimeOffTypeSchema), timeOffTypeController.update);
+router.put('/:id', requirePermission('TimeOff', 'update'), validate(updateTimeOffTypeSchema), timeOffTypeController.update);
 router.delete('/:id', requirePermission('TimeOff', 'delete'), timeOffTypeController.remove);
 
 export default router;

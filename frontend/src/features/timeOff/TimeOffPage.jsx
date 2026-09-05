@@ -22,9 +22,10 @@ export const TimeOffPage = () => {
     try {
       const response = await axiosClient.get('/time-off/allocations');
       const allocs = Array.isArray(response.data) ? response.data : (response.data?.data || []);
-      const totalAlloc = allocs.reduce((acc, a) => acc + parseFloat(a.allocated_amount || 0), 0);
-      const totalUsed = allocs.reduce((acc, a) => acc + parseFloat(a.taken_amount || 0), 0);
-      const totalRem = allocs.reduce((acc, a) => acc + parseFloat(a.remaining_amount || 0), 0);
+      const approvedAllocs = allocs.filter((a) => a.status === 'Approved');
+      const totalAlloc = approvedAllocs.reduce((acc, a) => acc + parseFloat(a.allocated_amount || 0), 0);
+      const totalUsed = approvedAllocs.reduce((acc, a) => acc + parseFloat(a.taken_amount || 0), 0);
+      const totalRem = approvedAllocs.reduce((acc, a) => acc + parseFloat(a.remaining_amount ?? (a.allocated_amount - a.taken_amount)), 0);
 
       setStats({
         allocated: totalAlloc,

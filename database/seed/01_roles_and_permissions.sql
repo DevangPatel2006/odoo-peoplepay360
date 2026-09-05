@@ -43,12 +43,12 @@ INSERT INTO role_permissions (role_id, module, can_create, can_read, can_update,
 ON CONFLICT (role_id, module) DO UPDATE SET 
 can_create = EXCLUDED.can_create, can_read = EXCLUDED.can_read, can_update = EXCLUDED.can_update, can_delete = EXCLUDED.can_delete, can_approve = EXCLUDED.can_approve;
 
--- 3. HR Payroll User Permissions (HR Manager rights + C/R/U on Payruns & Payslips, R-only on Structures/Rules)
+-- 3. HR Payroll User Permissions (Full HR Manager CRUD + C/R/U on Payruns & Payslips, R-only on Structures/Rules)
 INSERT INTO role_permissions (role_id, module, can_create, can_read, can_update, can_delete, can_approve) VALUES
-(3, 'Employees', true, true, true, false, false),
-(3, 'Contracts', true, true, true, false, false),
-(3, 'Attendance', true, true, true, false, true),
-(3, 'TimeOff', true, true, true, false, true),
+(3, 'Employees', true, true, true, true, false),
+(3, 'Contracts', true, true, true, true, false),
+(3, 'Attendance', true, true, true, true, true),
+(3, 'TimeOff', true, true, true, true, true),
 (3, 'Payruns', true, true, true, false, false),
 (3, 'Payslips', true, true, true, false, false),
 (3, 'SalaryStructures', false, true, false, false, false),
@@ -67,7 +67,7 @@ INSERT INTO role_permissions (role_id, module, can_create, can_read, can_update,
 (4, 'Payslips', true, true, true, true, false),
 (4, 'SalaryStructures', true, true, true, true, false),
 (4, 'SalaryRules', true, true, true, true, false),
-(4, 'Users', false, true, true, false, false)
+(4, 'Users', false, true, false, false, false)
 ON CONFLICT (role_id, module) DO UPDATE SET 
 can_create = EXCLUDED.can_create, can_read = EXCLUDED.can_read, can_update = EXCLUDED.can_update, can_delete = EXCLUDED.can_delete, can_approve = EXCLUDED.can_approve;
 

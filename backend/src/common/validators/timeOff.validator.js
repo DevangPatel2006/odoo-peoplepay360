@@ -78,6 +78,7 @@ export const updateRequestSchema = Joi.object({
 
 export const reviewRequestSchema = Joi.object({
   reason: Joi.string().allow(null, ''),
+  allocation_id: Joi.number().integer().positive().allow(null),
 });
 
 export const queryRequestSchema = Joi.object({

@@ -24,11 +24,12 @@ export const RequestList = ({ onRefreshBalances }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
 
-  // Permission check: admins, managers, HR can approve/refuse
+  // Permission check: admins, HR managers, and HR payroll officers can approve/refuse
   const userRoles = Array.isArray(user?.roles) ? user.roles : [user?.role || ''];
-  const canApproveOrRefuse = userRoles.some((r) => 
-    ['admin', 'Administrator', 'HR Manager', 'hr_manager', 'payroll_officer'].includes(String(r).toLowerCase())
-  );
+  const canApproveOrRefuse = userRoles.some((r) => {
+    const role = String(r).toLowerCase().replace(/_/g, ' ').trim();
+    return ['admin', 'administrator', 'hr manager', 'hr payroll user', 'hr payroll manager'].includes(role);
+  });
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -61,7 +62,32 @@ export const RequestList = ({ onRefreshBalances }) => {
 
     try {
       if (newStatus === 'Approved') {
-        await axiosClient.patch(`/time-off/requests/${id}/approve`);
+        const targetReq = requests.find((r) => r.id === id);
+        let approvePayload = {};
+
+        if (targetReq?.requires_allocation && !targetReq.allocation_id) {
+          try {
+            const allocRes = await axiosClient.get('/time-off/allocations', {
+              params: {
+                employee_id: targetReq.employee_id,
+                time_off_type_id: targetReq.time_off_type_id,
+                status: 'Approved',
+              },
+            });
+            const allocList = Array.isArray(allocRes.data) ? allocRes.data : (allocRes.data?.data || []);
+            const validAlloc = allocList.find((a) => {
+              const rem = parseFloat(a.remaining_amount ?? (a.allocated_amount - a.taken_amount));
+              return rem >= parseFloat(targetReq.duration);
+            });
+            if (validAlloc) {
+              approvePayload.allocation_id = validAlloc.id;
+            }
+          } catch (allocLookupErr) {
+            console.warn('Could not auto-lookup allocation:', allocLookupErr);
+          }
+        }
+
+        await axiosClient.patch(`/time-off/requests/${id}/approve`, approvePayload);
         addToast(`Leave request #${id} for ${employeeName || 'employee'} approved.`, 'success');
       } else {
         await axiosClient.patch(`/time-off/requests/${id}/refuse`);

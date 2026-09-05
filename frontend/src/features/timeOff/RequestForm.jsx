@@ -25,6 +25,12 @@ export const RequestForm = ({ onSubmit, onCancel }) => {
 
   const [errors, setErrors] = useState({});
 
+  const userRoles = Array.isArray(user?.roles) ? user.roles : [user?.role || ''];
+  const isElevated = userRoles.some((r) => {
+    const role = String(r).toLowerCase().replace(/_/g, ' ').trim();
+    return ['admin', 'administrator', 'hr manager', 'hr payroll user', 'hr payroll manager'].includes(role);
+  });
+
   useEffect(() => {
     let isMounted = true;
     const loadDependencies = async () => {
@@ -36,15 +42,16 @@ export const RequestForm = ({ onSubmit, onCancel }) => {
         ]);
         if (!isMounted) return;
 
-        const empList = Array.isArray(empRes.data) ? empRes.data : [];
-        const typeList = Array.isArray(typesRes.data) ? typesRes.data : [];
+        const empList = Array.isArray(empRes.data) ? empRes.data : (empRes.data?.data || []);
+        const typeList = Array.isArray(typesRes.data) ? typesRes.data : (typesRes.data?.data || []);
 
         setEmployees(empList);
         setTypes(typeList);
 
         // Preselect employee (user's employee if exists, else first)
-        const defaultEmpId = user?.employeeId 
-          ? String(user.employeeId) 
+        const myEmpId = user?.employeeDbId || user?.employeeId;
+        const defaultEmpId = myEmpId 
+          ? String(myEmpId) 
           : (empList[0] ? String(empList[0].id) : '');
 
         const defaultTypeId = typeList[0] ? String(typeList[0].id) : '';
@@ -144,22 +151,41 @@ export const RequestForm = ({ onSubmit, onCancel }) => {
         value={formData.employee_id}
         onChange={(e) => setFormData({ ...formData, employee_id: e.target.value })}
         error={errors.employee_id}
+        disabled={!isElevated && !!formData.employee_id}
         options={employees.map((emp) => ({
           value: String(emp.id),
           label: `${emp.first_name} ${emp.last_name} (${emp.employee_code || `EMP-${emp.id}`})`,
         }))}
       />
 
-      <Select
-        label="Leave Type *"
-        value={formData.time_off_type_id}
-        onChange={(e) => setFormData({ ...formData, time_off_type_id: e.target.value })}
-        error={errors.time_off_type_id}
-        options={types.map((t) => ({
-          value: String(t.id),
-          label: `${t.name} (${t.unit || 'Days'})`,
-        }))}
-      />
+      <div>
+        <Select
+          label="Leave Type *"
+          value={formData.time_off_type_id}
+          onChange={(e) => setFormData({ ...formData, time_off_type_id: e.target.value })}
+          error={errors.time_off_type_id}
+          options={types.map((t) => ({
+            value: String(t.id),
+            label: `${t.name} (${t.unit || 'Days'})`,
+          }))}
+        />
+        {(() => {
+          const selectedType = types.find((t) => String(t.id) === String(formData.time_off_type_id));
+          if (!selectedType) return null;
+          return (
+            <div style={{
+              fontSize: '0.75rem',
+              marginTop: '4px',
+              color: selectedType.requires_allocation ? '#2563EB' : '#059669',
+              fontWeight: 500,
+            }}>
+              {selectedType.requires_allocation 
+                ? 'ℹ️ Quota-based leave: An approved allocation balance is required to take this leave.' 
+                : '✓ Direct leave: No allocation quota required.'}
+            </div>
+          );
+        })()}
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         <Input
