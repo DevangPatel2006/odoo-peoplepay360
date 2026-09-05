@@ -120,19 +120,39 @@ GROUP BY e.company_id, e.department_id, d.name;
 -- Leave usage per Time Off Type: requested, approved, pending, and remaining.
 -- -----------------------------------------------------------------------------
 CREATE OR REPLACE VIEW v_time_off_overview AS
-SELECT 
+SELECT
     tot.id AS time_off_type_id,
     tot.name AS time_off_type_name,
     tot.unit,
-    COUNT(tr.id) AS total_requests_count,
-    COALESCE(SUM(CASE WHEN tr.status = 'Approved' THEN tr.duration ELSE 0 END), 0.00) AS approved_amount,
-    COALESCE(SUM(CASE WHEN tr.status = 'To Approve' THEN tr.duration ELSE 0 END), 0.00) AS pending_amount,
-    COALESCE(SUM(ta.allocated_amount), 0.00) AS total_allocated,
-    COALESCE(SUM(ta.remaining_amount), 0.00) AS total_remaining
+    COALESCE(e.company_id, 1) AS company_id,
+    COALESCE(req.total_requests_count, 0) AS total_requests_count,
+    COALESCE(req.approved_amount, 0.00) AS approved_amount,
+    COALESCE(req.pending_amount, 0.00) AS pending_amount,
+    COALESCE(alloc.total_allocated, 0.00) AS total_allocated,
+    COALESCE(alloc.total_remaining, 0.00) AS total_remaining
 FROM time_off_types tot
-LEFT JOIN time_off_requests tr ON tr.time_off_type_id = tot.id
-LEFT JOIN time_off_allocations ta ON ta.time_off_type_id = tot.id
-GROUP BY tot.id, tot.name, tot.unit;
+LEFT JOIN (
+    SELECT
+        tr.time_off_type_id,
+        e.company_id,
+        COUNT(tr.id) AS total_requests_count,
+        SUM(CASE WHEN tr.status = 'Approved' THEN tr.duration ELSE 0 END) AS approved_amount,
+        SUM(CASE WHEN tr.status = 'To Approve' THEN tr.duration ELSE 0 END) AS pending_amount
+    FROM time_off_requests tr
+    JOIN employees e ON tr.employee_id = e.id
+    GROUP BY tr.time_off_type_id, e.company_id
+) req ON req.time_off_type_id = tot.id
+LEFT JOIN (
+    SELECT
+        ta.time_off_type_id,
+        e.company_id,
+        SUM(ta.allocated_amount) AS total_allocated,
+        SUM(ta.remaining_amount) AS total_remaining
+    FROM time_off_allocations ta
+    JOIN employees e ON ta.employee_id = e.id
+    GROUP BY ta.time_off_type_id, e.company_id
+) alloc ON alloc.time_off_type_id = tot.id AND alloc.company_id = req.company_id
+LEFT JOIN employees e ON e.company_id = COALESCE(req.company_id, alloc.company_id, 1);
 
 -- -----------------------------------------------------------------------------
 -- 5.7 VIEW: v_department_overview

@@ -6,8 +6,8 @@ import { DepartmentOverview } from './DepartmentOverview';
 import { MonthlyTrendChart } from './MonthlyTrendChart';
 import { AttendanceOverview } from './AttendanceOverview';
 import { TimeOffOverview } from './TimeOffOverview';
-import { Button, Spinner, Alert, Select } from '../../components/ui';
-import { Play, RefreshCw, Filter, X } from 'lucide-react';
+import { Button, Spinner, Alert, Select, Input } from '../../components/ui';
+import { Play, RefreshCw, Filter, X, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../../api/axiosClient';
 
@@ -17,6 +17,8 @@ export const DashboardPage = () => {
   const [departments, setDepartments] = useState([]);
   const [selectedDept, setSelectedDept] = useState('');
   const [selectedType, setSelectedType] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
@@ -41,6 +43,8 @@ export const DashboardPage = () => {
       const params = {};
       if (selectedDept) params.department_id = selectedDept;
       if (selectedType) params.employee_type = selectedType;
+      if (startDate) params.period_start = startDate;
+      if (endDate) params.period_end = endDate;
 
       const response = await axiosClient.get('/dashboard', { params });
       setDashboardData(response.data);
@@ -51,17 +55,19 @@ export const DashboardPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [selectedDept, selectedType]);
+  }, [selectedDept, selectedType, startDate, endDate]);
 
   useEffect(() => {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
-  const hasActiveFilters = Boolean(selectedDept || selectedType);
+  const hasActiveFilters = Boolean(selectedDept || selectedType || startDate || endDate);
 
   const clearFilters = () => {
     setSelectedDept('');
     setSelectedType('');
+    setStartDate('');
+    setEndDate('');
   };
 
   return (
@@ -111,7 +117,7 @@ export const DashboardPage = () => {
             <span>Filter Analytics:</span>
           </div>
 
-          <div style={{ width: '220px' }}>
+          <div style={{ width: '190px' }}>
             <Select
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
@@ -122,7 +128,7 @@ export const DashboardPage = () => {
             />
           </div>
 
-          <div style={{ width: '200px' }}>
+          <div style={{ width: '180px' }}>
             <Select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
@@ -133,6 +139,24 @@ export const DashboardPage = () => {
                 { value: 'Contract', label: 'Contract' },
                 { value: 'Intern', label: 'Intern' },
               ]}
+            />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              style={{ width: '145px', marginBottom: 0 }}
+              placeholder="Start Date"
+            />
+            <span className="text-xs text-muted">to</span>
+            <Input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              style={{ width: '145px', marginBottom: 0 }}
+              placeholder="End Date"
             />
           </div>
 

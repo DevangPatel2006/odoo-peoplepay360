@@ -116,6 +116,7 @@ DECLARE
     v_gross NUMERIC(12,2) := 0.00;
     v_net NUMERIC(12,2) := 0.00;
     v_wage NUMERIC(12,2) := 0.00;
+    v_expr TEXT;
 BEGIN
     -- Fetch Payslip
     SELECT * INTO v_payslip FROM payslips WHERE id = p_payslip_id;
@@ -154,7 +155,34 @@ BEGIN
                 v_computed_val := ROUND(v_wage * (COALESCE(v_rule.percentage_value, 0) / 100.0), 2);
             END IF;
         ELSIF v_rule.computation_method = 'Formula' THEN
-            IF v_rule.category = 'Gross' THEN
+            IF v_rule.formula_expression IS NOT NULL AND TRIM(v_rule.formula_expression) <> '' THEN
+                BEGIN
+                    v_expr := v_rule.formula_expression;
+                    v_expr := REGEXP_REPLACE(v_expr, '^result\s*=\s*', '', 'i');
+                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]BASIC[''"]\s*\]', v_basic::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]ALLOWANCE[''"]\s*\]', (v_gross - v_basic)::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]GROSS[''"]\s*\]', v_gross::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]DEDUCTION[''"]\s*\]', (v_gross - v_net)::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, 'categories\s*\[\s*[''"]NET[''"]\s*\]', v_net::text, 'gi');
+                    
+                    v_expr := REGEXP_REPLACE(v_expr, '\bBASIC\b', v_basic::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, '\bGROSS\b', v_gross::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, '\bNET\b', v_net::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, '\bWAGE\b', v_wage::text, 'gi');
+                    v_expr := REGEXP_REPLACE(v_expr, '\bWORKED_DAYS\b', COALESCE(v_payslip.worked_days, 0)::text, 'gi');
+
+                    EXECUTE 'SELECT (' || v_expr || ')::numeric' INTO v_computed_val;
+                    v_computed_val := ROUND(COALESCE(v_computed_val, 0.00), 2);
+                EXCEPTION WHEN OTHERS THEN
+                    IF v_rule.category = 'Gross' THEN
+                        v_computed_val := v_gross;
+                    ELSIF v_rule.category = 'Net' THEN
+                        v_computed_val := v_net;
+                    ELSE
+                        v_computed_val := COALESCE(v_rule.fixed_amount, 0.00);
+                    END IF;
+                END;
+            ELSIF v_rule.category = 'Gross' THEN
                 v_computed_val := v_gross;
             ELSIF v_rule.category = 'Net' THEN
                 v_computed_val := v_net;

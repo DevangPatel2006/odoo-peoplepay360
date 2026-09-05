@@ -61,7 +61,7 @@ export const previewEligibleEmployees = async (user, {
 }) => {
   let empSql = `
     SELECT e.id, e.employee_code, e.first_name, e.last_name, e.work_email,
-           e.employee_type, e.status, d.name AS department_name, jp.title AS job_position_title
+           e.bank_account_number, e.employee_type, e.status, d.name AS department_name, jp.title AS job_position_title
     FROM employees e
     LEFT JOIN departments d ON d.id = e.department_id
     LEFT JOIN job_positions jp ON jp.id = e.job_position_id
@@ -80,6 +80,7 @@ export const previewEligibleEmployees = async (user, {
   const employees = empRes.rows;
 
   const eligible = [];
+  const warnings = [];
   const skipped = [];
 
   for (const emp of employees) {
@@ -89,7 +90,7 @@ export const previewEligibleEmployees = async (user, {
 
       // Only eligible if contract uses the target salary structure (or can match)
       if (contract && (!contract.salary_structure_id || contract.salary_structure_id === parseInt(salary_structure_id, 10))) {
-        eligible.push({
+        const item = {
           employee: emp,
           resolved_contract: {
             id: contract.id,
@@ -98,7 +99,27 @@ export const previewEligibleEmployees = async (user, {
             salary_structure_id: contract.salary_structure_id,
             status: contract.status,
           },
-        });
+        };
+
+        const empWarnings = [];
+        if (!emp.bank_account_number || !emp.bank_account_number.trim()) {
+          empWarnings.push('Missing bank account details');
+        }
+        if (contract.end_date) {
+          const endDate = new Date(contract.end_date);
+          const pEnd = new Date(period_end);
+          const diffDays = (endDate - pEnd) / (1000 * 60 * 60 * 24);
+          if (diffDays >= 0 && diffDays <= 30) {
+            empWarnings.push(`Contract expires on ${String(contract.end_date).slice(0, 10)}`);
+          }
+        }
+
+        if (empWarnings.length > 0) {
+          item.warning_reasons = empWarnings;
+          warnings.push(item);
+        } else {
+          eligible.push(item);
+        }
       } else {
         skipped.push({
           employee: emp,
@@ -115,10 +136,12 @@ export const previewEligibleEmployees = async (user, {
 
   return {
     eligible,
+    warnings,
     skipped,
     counts: {
       total_active_candidates: employees.length,
       eligible_count: eligible.length,
+      warnings_count: warnings.length,
       skipped_count: skipped.length,
     },
   };

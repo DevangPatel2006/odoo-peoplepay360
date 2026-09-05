@@ -94,6 +94,7 @@ SELECT
     tot.id AS time_off_type_id,
     tot.name AS time_off_type_name,
     tot.unit,
+    COALESCE(req.company_id, alloc.company_id, 1) AS company_id,
     COALESCE(req.total_requests_count, 0) AS total_requests_count,
     COALESCE(req.approved_amount, 0.00) AS approved_amount,
     COALESCE(req.pending_amount, 0.00) AS pending_amount,
@@ -102,21 +103,25 @@ SELECT
 FROM time_off_types tot
 LEFT JOIN (
     SELECT
-        time_off_type_id,
-        COUNT(id) AS total_requests_count,
-        SUM(CASE WHEN status = 'Approved' THEN duration ELSE 0 END) AS approved_amount,
-        SUM(CASE WHEN status = 'To Approve' THEN duration ELSE 0 END) AS pending_amount
-    FROM time_off_requests
-    GROUP BY time_off_type_id
+        tr.time_off_type_id,
+        e.company_id,
+        COUNT(tr.id) AS total_requests_count,
+        SUM(CASE WHEN tr.status = 'Approved' THEN tr.duration ELSE 0 END) AS approved_amount,
+        SUM(CASE WHEN tr.status = 'To Approve' THEN tr.duration ELSE 0 END) AS pending_amount
+    FROM time_off_requests tr
+    JOIN employees e ON tr.employee_id = e.id
+    GROUP BY tr.time_off_type_id, e.company_id
 ) req ON req.time_off_type_id = tot.id
 LEFT JOIN (
     SELECT
-        time_off_type_id,
-        SUM(allocated_amount) AS total_allocated,
-        SUM(remaining_amount) AS total_remaining
-    FROM time_off_allocations
-    GROUP BY time_off_type_id
-) alloc ON alloc.time_off_type_id = tot.id;
+        ta.time_off_type_id,
+        e.company_id,
+        SUM(ta.allocated_amount) AS total_allocated,
+        SUM(ta.remaining_amount) AS total_remaining
+    FROM time_off_allocations ta
+    JOIN employees e ON ta.employee_id = e.id
+    GROUP BY ta.time_off_type_id, e.company_id
+) alloc ON alloc.time_off_type_id = tot.id AND alloc.company_id = req.company_id;
 
 -- -----------------------------------------------------------------------------
 -- BUG 4 FIX — v_payslip_status_and_alerts COUNT(DISTINCT p.id)

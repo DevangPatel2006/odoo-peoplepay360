@@ -64,46 +64,158 @@ export const getKpis = async (companyId, { period_start, period_end, department_
   return res.rows[0] || null;
 };
 
-export const getSalaryCostByDepartment = async (companyId) => {
+export const getSalaryCostByDepartment = async (companyId, { period_start, period_end, department_id, employee_type } = {}) => {
+  const conditions = ['d.company_id = $1', "pr.status IN ('Validated', 'Paid')", "p.status IN ('Done', 'Paid')"];
+  const values = [companyId];
+  let idx = 2;
+
+  if (department_id) {
+    conditions.push(`d.id = $${idx++}`);
+    values.push(parseInt(department_id, 10));
+  }
+  if (employee_type) {
+    conditions.push(`e.employee_type = $${idx++}`);
+    values.push(employee_type);
+  }
+  if (period_start) {
+    conditions.push(`p.period_start >= $${idx++}`);
+    values.push(period_start);
+  }
+  if (period_end) {
+    conditions.push(`p.period_end <= $${idx++}`);
+    values.push(period_end);
+  }
+
   const sql = `
-    SELECT * 
-    FROM v_salary_cost_by_department 
-    WHERE company_id = $1 
+    SELECT 
+        d.id AS department_id,
+        d.name AS department_name,
+        d.company_id,
+        COUNT(p.id) AS employee_count,
+        COALESCE(SUM(p.basic_amount), 0.00) AS total_basic_amount,
+        COALESCE(SUM(p.gross_amount), 0.00) AS total_gross_amount,
+        COALESCE(SUM(p.net_amount), 0.00) AS total_net_amount
+    FROM departments d
+    JOIN employees e ON e.department_id = d.id
+    JOIN payslips p ON p.employee_id = e.id
+    JOIN payruns pr ON pr.id = p.payrun_id
+    WHERE ${conditions.join(' AND ')}
+    GROUP BY d.id, d.name, d.company_id
     ORDER BY total_net_amount DESC
   `;
-  const res = await query(sql, [companyId]);
+  const res = await query(sql, values);
   return res.rows;
 };
 
-export const getMonthlyTrend = async (companyId) => {
+export const getMonthlyTrend = async (companyId, { period_start, period_end, department_id, employee_type } = {}) => {
+  const conditions = ['pr.company_id = $1', 'pr.is_archived = false', "pr.status IN ('Validated', 'Paid')", "p.status IN ('Done', 'Paid')"];
+  const values = [companyId];
+  let idx = 2;
+
+  if (department_id) {
+    conditions.push(`e.department_id = $${idx++}`);
+    values.push(parseInt(department_id, 10));
+  }
+  if (employee_type) {
+    conditions.push(`e.employee_type = $${idx++}`);
+    values.push(employee_type);
+  }
+  if (period_start) {
+    conditions.push(`p.period_start >= $${idx++}`);
+    values.push(period_start);
+  }
+  if (period_end) {
+    conditions.push(`p.period_end <= $${idx++}`);
+    values.push(period_end);
+  }
+
   const sql = `
-    SELECT * 
-    FROM v_monthly_net_salary_trend 
-    WHERE company_id = $1 
+    SELECT 
+        pr.company_id,
+        TO_CHAR(p.period_start, 'YYYY-MM') AS pay_month,
+        COUNT(DISTINCT p.id) AS payslips_count,
+        COALESCE(SUM(p.gross_amount), 0.00) AS total_gross_salary,
+        COALESCE(SUM(p.net_amount), 0.00) AS total_net_salary
+    FROM payruns pr
+    JOIN payslips p ON p.payrun_id = pr.id
+    JOIN employees e ON e.id = p.employee_id
+    WHERE ${conditions.join(' AND ')}
+    GROUP BY pr.company_id, TO_CHAR(p.period_start, 'YYYY-MM')
     ORDER BY pay_month ASC
   `;
-  const res = await query(sql, [companyId]);
+  const res = await query(sql, values);
   return res.rows;
 };
 
-export const getAttendanceOverview = async (companyId) => {
+export const getAttendanceOverview = async (companyId, { period_start, period_end, department_id, employee_type } = {}) => {
+  const conditions = ['e.company_id = $1'];
+  const values = [companyId];
+  let idx = 2;
+
+  if (department_id) {
+    conditions.push(`e.department_id = $${idx++}`);
+    values.push(parseInt(department_id, 10));
+  }
+  if (employee_type) {
+    conditions.push(`e.employee_type = $${idx++}`);
+    values.push(employee_type);
+  }
+  if (period_start) {
+    conditions.push(`a.attendance_date >= $${idx++}`);
+    values.push(period_start);
+  }
+  if (period_end) {
+    conditions.push(`a.attendance_date <= $${idx++}`);
+    values.push(period_end);
+  }
+
   const sql = `
-    SELECT * 
-    FROM v_attendance_overview 
-    WHERE company_id = $1 
-    ORDER BY department_name ASC NULLS LAST
+    SELECT 
+        e.company_id,
+        e.department_id,
+        d.name AS department_name,
+        COUNT(a.id) AS total_attendance_records,
+        COUNT(CASE WHEN a.status = 'Present' THEN 1 END) AS present_count,
+        COUNT(CASE WHEN a.status = 'Late' THEN 1 END) AS late_count,
+        COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) AS absent_count,
+        COUNT(CASE WHEN a.status = 'On Leave' THEN 1 END) AS on_leave_count,
+        COUNT(CASE WHEN a.is_manual_correction THEN 1 END) AS manual_corrections_count,
+        COALESCE(SUM(a.worked_hours), 0.00) AS total_worked_hours,
+        COALESCE(SUM(a.overtime_hours), 0.00) AS total_overtime_hours,
+        ROUND(
+            (COUNT(CASE WHEN a.status IN ('Present', 'Late') THEN 1 END)::numeric / NULLIF(COUNT(a.id), 0)) * 100, 2
+        ) AS coverage_percentage
+    FROM attendances a
+    JOIN employees e ON a.employee_id = e.id
+    LEFT JOIN departments d ON e.department_id = d.id
+    WHERE ${conditions.join(' AND ')}
+    GROUP BY e.company_id, e.department_id, d.name
+    ORDER BY d.name ASC NULLS LAST
   `;
+  const res = await query(sql, values);
+  return res.rows;
+};
+
+export const getTimeOffOverview = async (companyId = 1, { period_start, period_end, department_id, employee_type } = {}) => {
+  const sql = 'SELECT * FROM v_time_off_overview WHERE company_id = $1 ORDER BY time_off_type_name ASC';
   const res = await query(sql, [companyId]);
   return res.rows;
 };
 
-export const getTimeOffOverview = async () => {
-  const sql = 'SELECT * FROM v_time_off_overview ORDER BY time_off_type_name ASC';
-  const res = await query(sql);
-  return res.rows;
-};
+export const getDepartmentOverview = async (companyId, { department_id, employee_type } = {}) => {
+  const conditions = ['d.company_id = $1'];
+  const values = [companyId];
+  let idx = 2;
 
-export const getDepartmentOverview = async (companyId) => {
+  if (department_id) {
+    conditions.push(`d.id = $${idx++}`);
+    values.push(parseInt(department_id, 10));
+  }
+  if (employee_type) {
+    conditions.push(`e.employee_type = $${idx++}`);
+    values.push(employee_type);
+  }
+
   const sql = `
     SELECT d.id AS department_id,
            d.name AS department_name,
@@ -114,11 +226,11 @@ export const getDepartmentOverview = async (companyId) => {
     JOIN companies c ON d.company_id = c.id
     LEFT JOIN employees e ON e.department_id = d.id AND e.status = 'Active'
     LEFT JOIN contracts cnt ON cnt.employee_id = e.id AND cnt.status = 'Running'
-    WHERE d.company_id = $1
+    WHERE ${conditions.join(' AND ')}
     GROUP BY d.id, d.name, c.name
     ORDER BY headcount DESC
   `;
-  const res = await query(sql, [companyId]);
+  const res = await query(sql, values);
   return res.rows;
 };
 
@@ -154,18 +266,27 @@ export const getAlerts = async (companyId) => {
 
 export const getDashboardSummary = async (companyId, queryParams = {}) => {
   const deptId = queryParams.department_id ? parseInt(queryParams.department_id, 10) : null;
+  const empType = queryParams.employee_type || null;
 
-  const empCountPromise = deptId
-    ? query('SELECT COUNT(*)::int AS count FROM employees WHERE company_id = $1 AND status = $2 AND department_id = $3', [companyId, 'Active', deptId])
-    : query('SELECT COUNT(*)::int AS count FROM employees WHERE company_id = $1 AND status = $2', [companyId, 'Active']);
+  const empCountConditions = ['company_id = $1', "status = 'Active'"];
+  const empCountValues = [companyId];
+  let empIdx = 2;
+  if (deptId) { empCountConditions.push(`department_id = $${empIdx++}`); empCountValues.push(deptId); }
+  if (empType) { empCountConditions.push(`employee_type = $${empIdx++}`); empCountValues.push(empType); }
 
-  const contractCountPromise = deptId
-    ? query('SELECT COUNT(*)::int AS count FROM contracts c JOIN employees e ON e.id = c.employee_id WHERE e.company_id = $1 AND c.status = $2 AND e.department_id = $3', [companyId, 'Running', deptId])
-    : query('SELECT COUNT(*)::int AS count FROM contracts c JOIN employees e ON e.id = c.employee_id WHERE e.company_id = $1 AND c.status = $2', [companyId, 'Running']);
+  const empCountPromise = query(`SELECT COUNT(*)::int AS count FROM employees WHERE ${empCountConditions.join(' AND ')}`, empCountValues);
+
+  const contractCountConditions = ['e.company_id = $1', "c.status = 'Running'"];
+  const contractCountValues = [companyId];
+  let cntIdx = 2;
+  if (deptId) { contractCountConditions.push(`e.department_id = $${cntIdx++}`); contractCountValues.push(deptId); }
+  if (empType) { contractCountConditions.push(`e.employee_type = $${cntIdx++}`); contractCountValues.push(empType); }
+
+  const contractCountPromise = query(`SELECT COUNT(*)::int AS count FROM contracts c JOIN employees e ON e.id = c.employee_id WHERE ${contractCountConditions.join(' AND ')}`, contractCountValues);
 
   const attendanceExceptionsPromise = deptId
-    ? query("SELECT COUNT(*)::int AS count FROM attendances a JOIN employees e ON e.id = a.employee_id WHERE e.company_id = $1 AND (a.check_out IS NULL OR a.status IN ('Disputed', 'Late')) AND e.department_id = $2", [companyId, deptId])
-    : query("SELECT COUNT(*)::int AS count FROM attendances a JOIN employees e ON e.id = a.employee_id WHERE e.company_id = $1 AND (a.check_out IS NULL OR a.status IN ('Disputed', 'Late'))", [companyId]);
+    ? query("SELECT COUNT(*)::int AS count FROM attendances a JOIN employees e ON e.id = a.employee_id WHERE e.company_id = $1 AND (a.check_out_at IS NULL OR a.status IN ('Disputed', 'Late')) AND e.department_id = $2", [companyId, deptId])
+    : query("SELECT COUNT(*)::int AS count FROM attendances a JOIN employees e ON e.id = a.employee_id WHERE e.company_id = $1 AND (a.check_out_at IS NULL OR a.status IN ('Disputed', 'Late'))", [companyId]);
 
   const pendingLeavesPromise = deptId
     ? query("SELECT COUNT(*)::int AS count FROM time_off_requests tr JOIN employees e ON e.id = tr.employee_id WHERE e.company_id = $1 AND tr.status = 'To Approve' AND e.department_id = $2", [companyId, deptId])
@@ -211,11 +332,11 @@ export const getDashboardSummary = async (companyId, queryParams = {}) => {
   ] = await Promise.all([
     getKpis(companyId, queryParams).catch(() => null),
     getAlerts(companyId).catch(() => ({ unresolved_warnings: [], payslip_status_alerts: [] })),
-    getSalaryCostByDepartment(companyId).catch(() => []),
-    getAttendanceOverview(companyId).catch(() => []),
-    getTimeOffOverview().catch(() => []),
-    getDepartmentOverview(companyId).catch(() => []),
-    getMonthlyTrend(companyId).catch(() => []),
+    getSalaryCostByDepartment(companyId, queryParams).catch(() => []),
+    getAttendanceOverview(companyId, queryParams).catch(() => []),
+    getTimeOffOverview(companyId, queryParams).catch(() => []),
+    getDepartmentOverview(companyId, queryParams).catch(() => []),
+    getMonthlyTrend(companyId, queryParams).catch(() => []),
     empCountPromise.catch(() => ({ rows: [{ count: 0 }] })),
     contractCountPromise.catch(() => ({ rows: [{ count: 0 }] })),
     attendanceExceptionsPromise.catch(() => ({ rows: [{ count: 0 }] })),
