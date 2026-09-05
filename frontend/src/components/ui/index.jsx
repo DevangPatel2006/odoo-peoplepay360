@@ -202,6 +202,14 @@ export const Modal = ({
             <X size={18} />
           </button>
         </div>
+        <div className="modal-body">
+          {children}
+        </div>
+        {footer && (
+          <div className="modal-footer">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );

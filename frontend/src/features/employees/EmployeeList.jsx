@@ -119,23 +119,22 @@ export const EmployeeList = () => {
   const totalPages = Math.ceil(sortedEmployees.length / itemsPerPage) || 1;
   const paginatedEmployees = sortedEmployees.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-  const handleSaveEmployee = (savedData) => {
-    if (editingEmployee) {
-      setEmployees((prev) => prev.map((e) => (e.id === savedData.id ? savedData : e)));
-      addToast(`Updated employee profile for ${savedData.name}`, 'success');
-    } else {
-      setEmployees((prev) => [savedData, ...prev]);
-      addToast(`Added new employee record for ${savedData.name}`, 'success');
-    }
+  const handleSaveEmployee = () => {
+    fetchEmployees();
     setIsFormModalOpen(false);
     setEditingEmployee(null);
   };
 
-  const confirmDelete = () => {
-    if (deleteTarget) {
-      setEmployees((prev) => prev.filter((e) => e.id !== deleteTarget.id));
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      await axiosClient.delete(`/employees/${deleteTarget.dbId || deleteTarget.id}`);
       addToast(`Deleted employee record for ${deleteTarget.name}`, 'info');
       setDeleteTarget(null);
+      fetchEmployees();
+    } catch (err) {
+      console.error('Failed to delete employee:', err);
+      addToast(err.response?.data?.error?.message || 'Failed to delete employee record.', 'error');
     }
   };
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Modal, Badge, Button, Card } from '../../components/ui';
+import React, { useState, useEffect } from 'react';
+import { Modal, Badge, Button, Spinner } from '../../components/ui';
 import { 
   FileText, 
   Clock, 
@@ -15,9 +15,80 @@ import {
   Edit
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import axiosClient from '../../api/axiosClient';
 
 export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit }) => {
   const navigate = useNavigate();
+  const empId = employee?.dbId || employee?.id;
+
+  const [liveStats, setLiveStats] = useState({
+    contract: null,
+    attendanceCount: 0,
+    workedHours: 0,
+    leaveDaysUsed: 0,
+    allocatedDays: 0,
+    availableDays: 0,
+    payslipCount: 0,
+    lastNetSalary: null,
+  });
+  const [loadingStats, setLoadingStats] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen || !empId) return;
+
+    let isMounted = true;
+    const loadSmartStats = async () => {
+      setLoadingStats(true);
+      try {
+        const [contractsRes, attRes, timeOffRes, allocRes, payslipsRes] = await Promise.all([
+          axiosClient.get(`/employees/${empId}/contracts`).catch(() => ({ data: [] })),
+          axiosClient.get(`/employees/${empId}/attendance`).catch(() => ({ data: [] })),
+          axiosClient.get(`/employees/${empId}/time-off`).catch(() => ({ data: [] })),
+          axiosClient.get(`/employees/${empId}/allocations`).catch(() => ({ data: [] })),
+          axiosClient.get(`/payslips?employee_id=${empId}`).catch(() => ({ data: [] })),
+        ]);
+
+        if (!isMounted) return;
+
+        const contracts = Array.isArray(contractsRes.data) ? contractsRes.data : (contractsRes.data?.data || []);
+        const activeContract = contracts.find((c) => c.status === 'Running') || contracts[0] || null;
+
+        const attendances = Array.isArray(attRes.data) ? attRes.data : (attRes.data?.data || []);
+        const workedHoursSum = attendances.reduce((sum, a) => sum + parseFloat(a.worked_hours || 0), 0);
+        const presentCount = attendances.filter((a) => a.status === 'Present' || a.status === 'Late').length;
+
+        const leaves = Array.isArray(timeOffRes.data) ? timeOffRes.data : (timeOffRes.data?.data || []);
+        const leaveDays = leaves
+          .filter((l) => l.status === 'Approved')
+          .reduce((sum, l) => sum + parseFloat(l.duration || 0), 0);
+
+        const allocs = Array.isArray(allocRes.data) ? allocRes.data : (allocRes.data?.data || []);
+        const totalAllocated = allocs.reduce((sum, a) => sum + parseFloat(a.allocated_amount || 0), 0);
+        const totalRemaining = allocs.reduce((sum, a) => sum + parseFloat(a.remaining_amount ?? (a.allocated_amount - (a.taken_amount || 0))), 0);
+
+        const slips = Array.isArray(payslipsRes.data) ? payslipsRes.data : (payslipsRes.data?.data || []);
+        const lastSlip = slips[0];
+
+        setLiveStats({
+          contract: activeContract,
+          attendanceCount: presentCount,
+          workedHours: Math.round(workedHoursSum * 10) / 10,
+          leaveDaysUsed: leaveDays,
+          allocatedDays: totalAllocated,
+          availableDays: totalRemaining,
+          payslipCount: slips.length,
+          lastNetSalary: lastSlip ? parseFloat(lastSlip.net_amount || 0) : null,
+        });
+      } catch (err) {
+        console.error('Failed to load employee smart stats:', err);
+      } finally {
+        if (isMounted) setLoadingStats(false);
+      }
+    };
+
+    loadSmartStats();
+    return () => { isMounted = false; };
+  }, [isOpen, empId]);
 
   if (!employee) return null;
 
@@ -85,8 +156,12 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit }) => {
 
       {/* CONNECTED SMART HUB CARDS (5 Core Modules) */}
       <div style={{ marginBottom: '24px' }}>
-        <h4 style={{ marginBottom: '12px', color: '#0F172A' }}>Connected Module Smart Hub</h4>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <h4 style={{ color: '#0F172A', margin: 0 }}>Connected Module Smart Hub</h4>
+          {loadingStats && <span className="text-xs text-muted">Updating live metrics...</span>}
+        </div>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
           
           {/* 1. CONTRACTS CARD */}
           <div 
@@ -107,10 +182,10 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit }) => {
               <FileText size={18} />
             </div>
             <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>
-              {employee.activeContract?.wage || '$8,500.00 / mo'}
+              {liveStats.contract ? `$${parseFloat(liveStats.contract.wage_per_month).toLocaleString('en-US', { minimumFractionDigits: 2 })} / mo` : (employee.active_contract_wage ? `$${parseFloat(employee.active_contract_wage).toLocaleString('en-US', { minimumFractionDigits: 2 })} / mo` : 'No Active Contract')}
             </div>
             <div className="text-xs text-muted" style={{ marginTop: '2px' }}>
-              Status: <span style={{ color: '#059669', fontWeight: 600 }}>Running</span>
+              Status: <span style={{ color: liveStats.contract?.status === 'Running' ? '#059669' : '#D97706', fontWeight: 600 }}>{liveStats.contract?.status || 'None'}</span>
             </div>
           </div>
 
@@ -133,10 +208,10 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit }) => {
               <Clock size={18} />
             </div>
             <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>
-              168 Worked Hours
+              {liveStats.workedHours} Worked Hours
             </div>
             <div className="text-xs text-muted" style={{ marginTop: '2px' }}>
-              21 / 22 Days Present
+              {liveStats.attendanceCount} Recorded Days Present
             </div>
           </div>
 
@@ -159,10 +234,10 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit }) => {
               <Calendar size={18} />
             </div>
             <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>
-              14 Days Paid Leave
+              {liveStats.leaveDaysUsed} Days Taken
             </div>
             <div className="text-xs text-muted" style={{ marginTop: '2px' }}>
-              Remaining Balance
+              Approved Leave Requests
             </div>
           </div>
 
@@ -185,10 +260,10 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit }) => {
               <Calendar size={18} />
             </div>
             <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>
-              20 Days Allocated
+              {liveStats.availableDays} Days Available
             </div>
             <div className="text-xs text-muted" style={{ marginTop: '2px' }}>
-              6 Used • 14 Available
+              {liveStats.allocatedDays} Total Allocated
             </div>
           </div>
 
@@ -211,10 +286,10 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit }) => {
               <DollarSign size={18} />
             </div>
             <div className="font-semibold text-sm" style={{ color: '#0F172A' }}>
-              12 Generated
+              {liveStats.payslipCount} Generated
             </div>
             <div className="text-xs text-muted" style={{ marginTop: '2px' }}>
-              Last Net: $6,840.00
+              {liveStats.lastNetSalary != null ? `Last Net: $${liveStats.lastNetSalary.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : 'No Payslips Yet'}
             </div>
           </div>
 
@@ -225,20 +300,20 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit }) => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
         <div style={{ padding: '14px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
           <div className="text-xs text-muted font-medium">Work Contact</div>
-          <div className="text-sm font-semibold" style={{ marginTop: '4px' }}>{employee.email}</div>
-          <div className="text-xs text-secondary">{employee.phone || '+1 (555) 234-5678'}</div>
+          <div className="text-sm font-semibold" style={{ marginTop: '4px' }}>{employee.email || 'N/A'}</div>
+          <div className="text-xs text-secondary">{employee.phone || 'No phone recorded'}</div>
         </div>
 
         <div style={{ padding: '14px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
-          <div className="text-xs text-muted font-medium">Reporting Line</div>
-          <div className="text-sm font-semibold" style={{ marginTop: '4px' }}>{employee.manager || 'Sarah Jenkins'}</div>
-          <div className="text-xs text-secondary">HR Director</div>
+          <div className="text-xs text-muted font-medium">Reporting Line & Schedule</div>
+          <div className="text-sm font-semibold" style={{ marginTop: '4px' }}>{employee.manager || 'Executive'}</div>
+          <div className="text-xs text-secondary">{employee.schedule || 'Standard 40h/week'}</div>
         </div>
 
         <div style={{ padding: '14px', background: '#F8FAFC', borderRadius: '10px', border: '1px solid #E2E8F0' }}>
           <div className="text-xs text-muted font-medium">Direct Deposit Details</div>
-          <div className="text-sm font-semibold" style={{ marginTop: '4px' }}>{employee.bankAccount || 'US89370001928374'}</div>
-          <div className="text-xs text-success">Verified Routing</div>
+          <div className="text-sm font-semibold" style={{ marginTop: '4px' }}>{employee.bankAccount || 'None configured'}</div>
+          <div className="text-xs text-success">{employee.bankAccount ? 'Configured Direct Deposit' : 'Pending Bank Details'}</div>
         </div>
       </div>
     </Modal>

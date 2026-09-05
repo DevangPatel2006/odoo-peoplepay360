@@ -83,9 +83,8 @@ export const AttendanceList = () => {
   const missingCheckoutCount = attendances.filter(a => a.status === 'Missing Check-Out').length;
   const disputedCount = attendances.filter(a => a.status === 'Disputed').length;
 
-  const handleSaveAttendance = (savedData) => {
-    setAttendances((prev) => prev.map((a) => (a.id === savedData.id ? savedData : a)));
-    addToast(`Attendance record updated for ${savedData.employeeName}`, 'success');
+  const handleSaveAttendance = () => {
+    fetchAttendances();
     setIsFormModalOpen(false);
     setEditingAttendance(null);
   };
