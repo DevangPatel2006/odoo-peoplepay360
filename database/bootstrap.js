@@ -36,6 +36,7 @@ const sqlFiles = [
   'seed/05_salary_structures_rules.sql',
   'seed/06_time_off_types.sql',
   'seed/07_demo_users.sql',
+  'seed/08_demo_full_flow_seed.sql',
 ];
 
 async function ensureDatabaseExists() {

@@ -21,12 +21,12 @@ BEGIN
     INTO v_count, v_contract_id
     FROM contracts
     WHERE employee_id = p_employee_id
-      AND status IN ('Running', 'Draft')
+      AND status = 'Running'
       AND start_date <= p_period_end
       AND (end_date IS NULL OR end_date >= p_period_start);
 
     IF v_count = 0 THEN
-        RAISE EXCEPTION 'No running or active contract found for employee ID % covering period % to %', 
+        RAISE EXCEPTION 'No running active contract found for employee ID % covering period % to %', 
             p_employee_id, p_period_start, p_period_end;
     ELSIF v_count > 1 THEN
         RAISE EXCEPTION 'Ambiguous contracts: % matching contracts found for employee ID % covering period % to %', 

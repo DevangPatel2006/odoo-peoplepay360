@@ -3,6 +3,7 @@ import employeeModel from '../../employees/employee.model.js';
 import env from '../../../config/env.js';
 import { resolveOwnershipScope } from '../../../common/utils/scope.js';
 import { AppError } from '../../../middleware/errorHandler.js';
+import { query } from '../../../config/db.js';
 
 export const listRequests = async (user, queryParams = {}) => {
   const { scope, employeeId } = resolveOwnershipScope(user, 'TimeOff');
@@ -192,6 +193,27 @@ export const approveRequest = async (id, user, data = {}) => {
       approver_id: user.employeeId || null,
       reason: data.reason || request.reason,
     });
+
+    // Sync approved leave into attendance records for the request period
+    if (request.start_date && request.end_date) {
+      const start = new Date(request.start_date);
+      const end = new Date(request.end_date);
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().split('T')[0];
+        try {
+          await query(
+            `INSERT INTO attendances (employee_id, attendance_date, status, notes)
+             VALUES ($1, $2, 'On Leave', $3)
+             ON CONFLICT (employee_id, attendance_date)
+             DO UPDATE SET status = 'On Leave'`,
+            [request.employee_id, dateStr, `Approved Time Off: ${request.time_off_type_name || 'Leave'}`]
+          );
+        } catch (attErr) {
+          console.warn(`Failed to sync attendance for employee ${request.employee_id} on ${dateStr}:`, attErr.message);
+        }
+      }
+    }
+
     return timeOffModel.findRequestById(parseInt(id, 10), user.companyId);
   } catch (err) {
     if (err.code === 'P0001') {

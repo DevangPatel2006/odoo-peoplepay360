@@ -99,7 +99,8 @@ export const EmployeeDetailModal = ({ employee, isOpen, onClose, onEdit, onReset
 
   const handleNavigate = (path) => {
     onClose();
-    navigate(path);
+    const query = empId ? `?employee_id=${empId}` : '';
+    navigate(`${path}${query}`);
   };
 
   const handleResetCredentials = async () => {

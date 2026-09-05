@@ -4,11 +4,15 @@ import { ContractForm } from './ContractForm';
 import { Plus, Search, FileText, CheckCircle2, Clock, Eye, Edit, Trash2, Calendar, Play } from 'lucide-react';
 import axiosClient from '../../api/axiosClient';
 
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../../store';
 import { ConfirmModal } from '../../components/ui';
 
 export const ContractList = () => {
   const { addToast } = useApp();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const employeeIdParam = searchParams.get('employee_id');
+
   const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -63,7 +67,13 @@ export const ContractList = () => {
       cnt.salaryStructure.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = statusFilter === 'ALL' || cnt.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesEmployee = !employeeIdParam ||
+      String(cnt.employee_id) === String(employeeIdParam) ||
+      String(cnt.dbId) === String(employeeIdParam) ||
+      cnt.employeeId === String(employeeIdParam) ||
+      cnt.employeeId === `EMP-${employeeIdParam}`;
+
+    return matchesSearch && matchesStatus && matchesEmployee;
   });
 
   const totalPages = Math.ceil(filteredContracts.length / itemsPerPage) || 1;

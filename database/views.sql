@@ -11,11 +11,11 @@ CREATE OR REPLACE VIEW v_kpi_summary AS
 SELECT 
     c.id AS company_id,
     c.name AS company_name,
-    COALESCE(SUM(p.net_amount), 0.00) AS total_net_salary_paid,
-    COUNT(p.id) AS total_payslips_generated,
+    COALESCE(SUM(CASE WHEN pr.status IN ('Validated', 'Paid') AND p.status IN ('Done', 'Paid') THEN p.net_amount ELSE 0.00 END), 0.00) AS total_net_salary_paid,
+    COUNT(CASE WHEN pr.status IN ('Validated', 'Paid') AND p.status IN ('Done', 'Paid') THEN p.id END) AS total_payslips_generated,
     COUNT(CASE WHEN p.status = 'Paid' THEN 1 END) AS paid_payslips_count,
-    COUNT(CASE WHEN p.status IN ('Draft', 'Computed', 'Done') THEN 1 END) AS pending_payslips_count,
-    COALESCE(ROUND(AVG(p.net_amount), 2), 0.00) AS average_salary_per_employee,
+    COUNT(CASE WHEN p.status IN ('Draft', 'Computed') THEN 1 END) AS pending_payslips_count,
+    COALESCE(ROUND(AVG(CASE WHEN pr.status IN ('Validated', 'Paid') AND p.status IN ('Done', 'Paid') THEN p.net_amount END), 2), 0.00) AS average_salary_per_employee,
     (
         SELECT COALESCE(SUM(duration), 0.00) 
         FROM time_off_requests tr 
@@ -54,6 +54,8 @@ SELECT
 FROM departments d
 JOIN employees e ON e.department_id = d.id
 JOIN payslips p ON p.employee_id = e.id
+JOIN payruns pr ON pr.id = p.payrun_id
+WHERE pr.status IN ('Validated', 'Paid') AND p.status IN ('Done', 'Paid')
 GROUP BY d.id, d.name, d.company_id, p.payrun_id, p.period_start, p.period_end;
 
 -- -----------------------------------------------------------------------------
@@ -69,7 +71,7 @@ SELECT
     COALESCE(SUM(p.net_amount), 0.00) AS total_net_salary
 FROM payruns pr
 JOIN payslips p ON p.payrun_id = pr.id
-WHERE pr.is_archived = false
+WHERE pr.is_archived = false AND pr.status IN ('Validated', 'Paid') AND p.status IN ('Done', 'Paid')
 GROUP BY pr.company_id, TO_CHAR(p.period_start, 'YYYY-MM')
 ORDER BY pay_month DESC;
 

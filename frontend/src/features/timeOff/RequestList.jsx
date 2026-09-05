@@ -3,10 +3,14 @@ import { Table, Badge, Button, Modal, Pagination, EmptyState, Spinner, Alert, Se
 import { RequestForm } from './RequestForm';
 import { Plus, Search, Calendar, Check, X, Eye, RefreshCw } from 'lucide-react';
 import axiosClient from '../../api/axiosClient';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../../store';
 
 export const RequestList = ({ onRefreshBalances }) => {
   const { user, addToast } = useApp();
+  const [searchParams] = useSearchParams();
+  const employeeIdParam = searchParams.get('employee_id');
+
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -105,7 +109,12 @@ export const RequestList = ({ onRefreshBalances }) => {
       String(r.id).includes(query);
 
     const matchesStatus = statusFilter === 'ALL' || r.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesEmpParam = !employeeIdParam ||
+      String(r.employee_id) === String(employeeIdParam) ||
+      String(r.empCode) === String(employeeIdParam) ||
+      r.empCode === `EMP-${employeeIdParam}`;
+
+    return matchesSearch && matchesStatus && matchesEmpParam;
   });
 
   const totalPages = Math.ceil(filteredRequests.length / itemsPerPage) || 1;

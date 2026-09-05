@@ -15,10 +15,14 @@ import {
 } from 'lucide-react';
 import axiosClient from '../../api/axiosClient';
 
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../../store';
 
 export const AttendanceList = () => {
   const { addToast } = useApp();
+  const [searchParams] = useSearchParams();
+  const employeeIdParam = searchParams.get('employee_id');
+
   const [attendances, setAttendances] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -89,8 +93,13 @@ export const AttendanceList = () => {
     const matchesDate = !dateFilter || att.date === dateFilter;
     const matchesStatus = statusFilter === 'ALL' || att.status === statusFilter;
     const matchesEmp = employeeFilter === 'ALL' || att.employeeName === employeeFilter;
+    const matchesEmpParam = !employeeIdParam ||
+      String(att.employee_id) === String(employeeIdParam) ||
+      String(att.dbId) === String(employeeIdParam) ||
+      att.employeeId === String(employeeIdParam) ||
+      att.employeeId === `EMP-${employeeIdParam}`;
 
-    return matchesSearch && matchesDate && matchesStatus && matchesEmp;
+    return matchesSearch && matchesDate && matchesStatus && matchesEmp && matchesEmpParam;
   });
 
   const totalPages = Math.ceil(filteredAttendances.length / itemsPerPage) || 1;
