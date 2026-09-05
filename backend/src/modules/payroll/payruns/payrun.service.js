@@ -210,8 +210,12 @@ export const computePayrun = async (payrunId, user) => {
       throw new AppError('Payrun not found', 404, 'NOT_FOUND');
     }
 
-    if (payrun.status === 'Paid') {
-      throw new AppError('Cannot recompute a Paid payrun. Payroll is locked.', 400, 'PAYRUN_LOCKED');
+    if (!['Draft', 'Computed'].includes(payrun.status)) {
+      throw new AppError(
+        `Payrun must be in 'Draft' or 'Computed' status to compute (current status: ${payrun.status})`,
+        400,
+        'INVALID_STATUS'
+      );
     }
 
     // Fetch payrun_employees
@@ -230,7 +234,14 @@ export const computePayrun = async (payrunId, user) => {
 
       let payslipId;
       if (slipCheck.rows.length === 0) {
-        // Derive worked_days from attendances
+        // ---------------------------------------------------------------------
+        // Worked-Days Semantics (v1 Specification):
+        // worked_days is derived from recorded attendances and stored in payslips
+        // for display, reporting, and audit purposes (visible on the Payslip view
+        // per specification section B7). In this version, basic salary calculation
+        // in stored procedure compute_payslip() evaluates full contract
+        // wage_per_month without attendance proration.
+        // ---------------------------------------------------------------------
         const attRes = await client.query(
           `SELECT COUNT(DISTINCT attendance_date) AS worked_days 
            FROM attendances 
@@ -272,7 +283,7 @@ export const computePayrun = async (payrunId, user) => {
 
     // Update payrun status to 'Computed'
     await client.query(
-      "UPDATE payruns SET status = 'Computed', updated_at = CURRENT_TIMESTAMP WHERE id = $1",
+      "UPDATE payruns SET status = 'Computed' WHERE id = $1",
       [payrun.id]
     );
   });
@@ -321,8 +332,8 @@ export const validatePayrun = async (payrunId, user, { acknowledge_warnings = fa
     }
 
     // Update status to 'Validated' and child payslips to 'Done'
-    await client.query("UPDATE payruns SET status = 'Validated', updated_at = CURRENT_TIMESTAMP WHERE id = $1", [payrun.id]);
-    await client.query("UPDATE payslips SET status = 'Done', updated_at = CURRENT_TIMESTAMP WHERE payrun_id = $1 AND status = 'Computed'", [payrun.id]);
+    await client.query("UPDATE payruns SET status = 'Validated' WHERE id = $1", [payrun.id]);
+    await client.query("UPDATE payslips SET status = 'Done' WHERE payrun_id = $1 AND status = 'Computed'", [payrun.id]);
   });
 
   return getPayrunById(payrunId, user);
@@ -348,10 +359,28 @@ export const markPaidPayrun = async (payrunId, user) => {
     }
 
     // Update status to 'Paid' and child payslips to 'Paid'
-    await client.query("UPDATE payruns SET status = 'Paid', updated_at = CURRENT_TIMESTAMP WHERE id = $1", [payrun.id]);
-    await client.query("UPDATE payslips SET status = 'Paid', updated_at = CURRENT_TIMESTAMP WHERE payrun_id = $1 AND status = 'Done'", [payrun.id]);
+    await client.query("UPDATE payruns SET status = 'Paid' WHERE id = $1", [payrun.id]);
+    await client.query("UPDATE payslips SET status = 'Paid' WHERE payrun_id = $1 AND status = 'Done'", [payrun.id]);
   });
 
+  return getPayrunById(payrunId, user);
+};
+
+/**
+ * Action: Archive Payrun
+ */
+export const archivePayrun = async (payrunId, user) => {
+  const payrun = await getPayrunById(payrunId, user);
+  await query('UPDATE payruns SET is_archived = true WHERE id = $1', [payrun.id]);
+  return getPayrunById(payrunId, user);
+};
+
+/**
+ * Action: Unarchive Payrun
+ */
+export const unarchivePayrun = async (payrunId, user) => {
+  const payrun = await getPayrunById(payrunId, user);
+  await query('UPDATE payruns SET is_archived = false WHERE id = $1', [payrun.id]);
   return getPayrunById(payrunId, user);
 };
 
@@ -372,24 +401,44 @@ export const sendPayrunPayslips = async (payrunId, user) => {
     payrun_id: payrun.id,
   });
 
+  // Only include payslips with status IN ('Done', 'Paid')
+  const readySlips = (payslips.rows || []).filter((s) => ['Done', 'Paid'].includes(s.status));
+  if (readySlips.length === 0) {
+    throw new AppError(
+      'No validated payslips are ready to send for this payrun yet. Validate the payrun first.',
+      400,
+      'NO_PAYSLIPS_READY'
+    );
+  }
+
   const results = [];
-  for (const slip of payslips.rows) {
-    const fullSlip = await payrollModel.findPayslipById(slip.id, user.companyId);
-    let pdfPath = fullSlip.pdf_file_path;
+  for (const slip of readySlips) {
+    try {
+      const fullSlip = await payrollModel.findPayslipById(slip.id, user.companyId);
+      let pdfPath = fullSlip.pdf_file_path;
 
-    if (!pdfPath || !fs.existsSync(pdfPath)) {
-      pdfPath = await generatePayslipPdf(fullSlip);
-      await query('UPDATE payslips SET pdf_file_path = $1 WHERE id = $2', [pdfPath, slip.id]);
+      if (!pdfPath || !fs.existsSync(pdfPath)) {
+        pdfPath = await generatePayslipPdf(fullSlip);
+        await query('UPDATE payslips SET pdf_file_path = $1 WHERE id = $2', [pdfPath, slip.id]);
+      }
+
+      const mailResult = await sendPayslipEmail(fullSlip, pdfPath);
+      await query('UPDATE payslips SET sent_at = CURRENT_TIMESTAMP WHERE id = $1', [slip.id]);
+
+      results.push({
+        payslip_id: slip.id,
+        email: fullSlip.work_email,
+        mail_sent: mailResult.success,
+        ...(mailResult.error ? { error: mailResult.error } : {}),
+      });
+    } catch (err) {
+      results.push({
+        payslip_id: slip.id,
+        email: slip.work_email,
+        mail_sent: false,
+        error: err.message,
+      });
     }
-
-    const mailResult = await sendPayslipEmail(fullSlip, pdfPath);
-    await query('UPDATE payslips SET sent_at = CURRENT_TIMESTAMP WHERE id = $1', [slip.id]);
-
-    results.push({
-      payslip_id: slip.id,
-      email: fullSlip.work_email,
-      mail_sent: mailResult.success,
-    });
   }
 
   return {
@@ -407,5 +456,7 @@ export default {
   computePayrun,
   validatePayrun,
   markPaidPayrun,
+  archivePayrun,
+  unarchivePayrun,
   sendPayrunPayslips,
 };

@@ -29,6 +29,9 @@ router.get('/:id/warnings', requirePermission('Payruns', 'read'), payrunControll
 router.post('/:id/compute', requirePermission('Payruns', 'update'), payrunController.compute);
 router.post('/:id/validate', requirePermission('Payruns', 'update'), validate(validatePayrunActionSchema), payrunController.validateAction);
 router.post('/:id/mark-paid', requirePermission('Payruns', 'update'), payrunController.markPaid);
+router.patch('/:id/archive', requirePermission('Payruns', 'update'), payrunController.archive);
+router.post('/:id/unarchive', requirePermission('Payruns', 'update'), payrunController.unarchive);
+router.patch('/:id/unarchive', requirePermission('Payruns', 'update'), payrunController.unarchive);
 router.post('/:id/send-payslips', requirePermission('Payruns', 'update'), payrunController.sendPayslips);
 
 export default router;

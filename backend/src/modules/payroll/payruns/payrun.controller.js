@@ -47,6 +47,16 @@ export const getWarnings = async (req, res) => {
   return ok(res, warnings);
 };
 
+export const archive = async (req, res) => {
+  const payrun = await payrunService.archivePayrun(req.params.id, req.user);
+  return ok(res, payrun);
+};
+
+export const unarchive = async (req, res) => {
+  const payrun = await payrunService.unarchivePayrun(req.params.id, req.user);
+  return ok(res, payrun);
+};
+
 export default {
   list,
   getById,
@@ -55,6 +65,8 @@ export default {
   compute,
   validateAction,
   markPaid,
+  archive,
+  unarchive,
   sendPayslips,
   getWarnings,
 };

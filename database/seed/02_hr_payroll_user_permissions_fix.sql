@@ -11,3 +11,10 @@ ON CONFLICT (role_id, module) DO UPDATE SET
   can_update = EXCLUDED.can_update,
   can_delete = EXCLUDED.can_delete,
   can_approve = EXCLUDED.can_approve;
+
+-- Fix HR Manager (role_id 2) Permission Gap for SalaryStructures (required for contract creation & assignment)
+INSERT INTO role_permissions (role_id, module, can_create, can_read, can_update, can_delete, can_approve)
+VALUES (2, 'SalaryStructures', false, true, false, false, false)
+ON CONFLICT (role_id, module) DO UPDATE SET 
+  can_read = true;
+
