@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest --passWithNoTests"
+    "test": "node --experimental-vm-modules ../node_modules/jest/bin/jest.js --runInBand --passWithNoTests"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -19,6 +19,8 @@
     "joi": "^17.13.3",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "nodemailer": "^6.9.16",
+    "pdfkit": "^0.15.1",
     "pg": "^8.13.1"
   },
   "devDependencies": {

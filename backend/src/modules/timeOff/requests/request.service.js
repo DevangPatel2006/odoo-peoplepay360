@@ -1,0 +1,160 @@
+import timeOffModel from '../timeOff.model.js';
+import employeeModel from '../../employees/employee.model.js';
+import env from '../../../config/env.js';
+import { resolveOwnershipScope } from '../../../common/utils/scope.js';
+import { AppError } from '../../../middleware/errorHandler.js';
+
+export const listRequests = async (user, queryParams = {}) => {
+  const { scope, employeeId } = resolveOwnershipScope(user, 'TimeOff');
+
+  const page = parseInt(queryParams.page, 10) || 1;
+  const pageSize = Math.min(
+    parseInt(queryParams.pageSize, 10) || env.pagination.defaultPageSize,
+    env.pagination.maxPageSize
+  );
+  const offset = (page - 1) * pageSize;
+
+  const filterEmployeeId = scope === 'own' ? employeeId : (queryParams.employee_id ? parseInt(queryParams.employee_id, 10) : undefined);
+
+  const { rows, total } = await timeOffModel.findRequests({
+    company_id: user.companyId,
+    employee_id: filterEmployeeId,
+    time_off_type_id: queryParams.time_off_type_id ? parseInt(queryParams.time_off_type_id, 10) : undefined,
+    status: queryParams.status,
+    limit: pageSize,
+    offset,
+  });
+
+  return {
+    data: rows,
+    meta: {
+      page,
+      pageSize,
+      total,
+    },
+  };
+};
+
+export const getRequestById = async (id, user) => {
+  const { scope, employeeId } = resolveOwnershipScope(user, 'TimeOff');
+  const request = await timeOffModel.findRequestById(parseInt(id, 10), user.companyId);
+
+  if (!request) {
+    throw new AppError('Time off request not found', 404, 'NOT_FOUND');
+  }
+
+  if (scope === 'own' && request.employee_id !== employeeId) {
+    throw new AppError('Access denied: You may only view your own time off requests', 403, 'FORBIDDEN');
+  }
+
+  return request;
+};
+
+export const createRequest = async (user, data) => {
+  const { scope, employeeId: selfEmployeeId } = resolveOwnershipScope(user, 'TimeOff');
+  const targetEmployeeId = scope === 'own' ? selfEmployeeId : (data.employee_id ? parseInt(data.employee_id, 10) : selfEmployeeId);
+
+  if (!targetEmployeeId) {
+    throw new AppError('Employee ID is required for time off request', 400, 'VALIDATION_ERROR');
+  }
+
+  const employee = await employeeModel.findById(targetEmployeeId, user.companyId);
+  if (!employee) {
+    throw new AppError('Target employee not found in your company', 404, 'NOT_FOUND');
+  }
+
+  const timeOffType = await timeOffModel.findTypeById(data.time_off_type_id);
+  if (!timeOffType) {
+    throw new AppError('Invalid time off type', 400, 'VALIDATION_ERROR');
+  }
+
+  // If time off type requires allocation, find or check active approved allocation if provided
+  let allocationId = data.allocation_id || null;
+  if (timeOffType.requires_allocation && !allocationId) {
+    // Automatically attempt to match an active approved allocation for this employee & type
+    const allocRes = await timeOffModel.findAllocations({
+      company_id: user.companyId,
+      employee_id: targetEmployeeId,
+      time_off_type_id: timeOffType.id,
+      status: 'Approved',
+      limit: 1,
+      offset: 0,
+    });
+    if (allocRes.rows.length > 0) {
+      allocationId = allocRes.rows[0].id;
+    }
+  }
+
+  const created = await timeOffModel.createRequest({
+    ...data,
+    employee_id: targetEmployeeId,
+    allocation_id: allocationId,
+    status: 'To Approve',
+  });
+
+  return timeOffModel.findRequestById(created.id, user.companyId);
+};
+
+export const approveRequest = async (id, user, data = {}) => {
+  const request = await timeOffModel.findRequestById(parseInt(id, 10), user.companyId);
+  if (!request) {
+    throw new AppError('Time off request not found', 404, 'NOT_FOUND');
+  }
+
+  if (request.status === 'Approved') {
+    throw new AppError('Request is already approved', 400, 'ALREADY_APPROVED');
+  }
+
+  if (request.requires_allocation && !request.allocation_id) {
+    throw new AppError(
+      'This time off type requires an allocation, but none is linked to this request. Please link an approved allocation before approving.',
+      422,
+      'ALLOCATION_REQUIRED'
+    );
+  }
+
+  try {
+    // DB trigger fn_deduct_time_off_allocation() automatically deducts allocation balance
+    await timeOffModel.updateRequest(parseInt(id, 10), {
+      status: 'Approved',
+      approver_id: user.employeeId || null,
+      reason: data.reason || request.reason,
+    });
+    return timeOffModel.findRequestById(parseInt(id, 10), user.companyId);
+  } catch (err) {
+    if (err.code === 'P0001') {
+      throw new AppError(err.message, 422, 'BUSINESS_RULE_VIOLATION');
+    }
+    throw err;
+  }
+};
+
+export const refuseRequest = async (id, user, data = {}) => {
+  const request = await timeOffModel.findRequestById(parseInt(id, 10), user.companyId);
+  if (!request) {
+    throw new AppError('Time off request not found', 404, 'NOT_FOUND');
+  }
+
+  await timeOffModel.updateRequest(parseInt(id, 10), {
+    status: 'Refused',
+    approver_id: user.employeeId || null,
+    reason: data.reason || request.reason,
+  });
+
+  return timeOffModel.findRequestById(parseInt(id, 10), user.companyId);
+};
+
+export const deleteRequest = async (id, user) => {
+  await getRequestById(id, user);
+  await timeOffModel.removeRequest(parseInt(id, 10));
+  return true;
+};
+
+export default {
+  listRequests,
+  getRequestById,
+  createRequest,
+  approveRequest,
+  refuseRequest,
+  deleteRequest,
+};

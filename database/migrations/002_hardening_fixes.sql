@@ -98,7 +98,7 @@ BEGIN
         VALUES (
             v_payslip.payslip_id, 
             'MissingBankDetails', 
-            FORMAT('Employee %s %s (ID %) is missing bank account details.', v_payslip.first_name, v_payslip.last_name, v_payslip.employee_id)
+            FORMAT('Employee %s %s (ID %s) is missing bank account details.', v_payslip.first_name, v_payslip.last_name, v_payslip.employee_id)
         );
         v_warning_count := v_warning_count + 1;
     END LOOP;
@@ -197,7 +197,7 @@ ALTER TABLE contracts
 CREATE OR REPLACE FUNCTION fn_touch_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
+    NEW.updated_at = clock_timestamp();
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -349,12 +349,21 @@ BEGIN
     END IF;
 
     -- Cleanup test data
-    UPDATE payruns SET status = 'Draft' WHERE id = v_test_payrun_id;
-    UPDATE payslips SET status = 'Draft' WHERE id = v_test_payslip_id;
+    ALTER TABLE payruns DISABLE TRIGGER trg_payrun_status_guard;
+    ALTER TABLE payruns DISABLE TRIGGER trg_prevent_finalized_payrun_delete;
+    ALTER TABLE payslips DISABLE TRIGGER trg_payslip_status_guard;
+    ALTER TABLE payslips DISABLE TRIGGER trg_prevent_paid_payslip_delete;
+
+    DELETE FROM payroll_warnings WHERE payslip_id = v_test_payslip_id;
     DELETE FROM payslips WHERE id = v_test_payslip_id;
     DELETE FROM payruns WHERE id = v_test_payrun_id;
     DELETE FROM contracts WHERE id = v_test_contract_id;
     DELETE FROM employees WHERE id = v_test_emp_id;
+
+    ALTER TABLE payruns ENABLE TRIGGER trg_payrun_status_guard;
+    ALTER TABLE payruns ENABLE TRIGGER trg_prevent_finalized_payrun_delete;
+    ALTER TABLE payslips ENABLE TRIGGER trg_payslip_status_guard;
+    ALTER TABLE payslips ENABLE TRIGGER trg_prevent_paid_payslip_delete;
 
     RAISE NOTICE '------------------------------------------------------------';
     RAISE NOTICE 'ALL MIGRATION 002 HARDENING CHECKS PASSED SUCCESSFULLY! ✅';

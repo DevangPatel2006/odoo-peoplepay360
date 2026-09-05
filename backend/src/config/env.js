@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename);
 
 // Attempt loading from backend directory or project root
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 dotenv.config();
 
 const env = {
@@ -31,6 +31,16 @@ const env = {
   pagination: {
     defaultPageSize: parseInt(process.env.PAGINATION_DEFAULT_PAGE_SIZE, 10) || 20,
     maxPageSize: parseInt(process.env.PAGINATION_MAX_PAGE_SIZE, 10) || 100,
+  },
+  pdf: {
+    outputDir: path.resolve(__dirname, '../../../', process.env.PDF_OUTPUT_DIR || 'storage/payslips'),
+  },
+  smtp: {
+    host: process.env.SMTP_HOST || 'smtp.mailtrap.io',
+    port: parseInt(process.env.SMTP_PORT, 10) || 2525,
+    user: process.env.SMTP_USER || '',
+    pass: process.env.SMTP_PASS || '',
+    from: process.env.SMTP_FROM || 'no-reply@peoplepay360.com',
   },
 };
 
