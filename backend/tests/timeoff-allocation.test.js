@@ -106,6 +106,46 @@ describe('Time Off Allocation & Requests Integration Tests', () => {
     expect(parseFloat(alloc.remaining_amount)).toBe(12.00); // 15 - 3 = 12
   });
 
+  test('Cannot delete an approved request directly (deletion guard)', async () => {
+    const res = await request(app)
+      .delete(`/api/time-off/requests/${testRequestId}`)
+      .set('Authorization', `Bearer ${hrToken}`);
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('APPROVED_REQUEST_NOT_DELETABLE');
+  });
+
+  test('Cannot hard delete a time off type referenced by allocations', async () => {
+    const res = await request(app)
+      .delete(`/api/time-off/types/${testTypeRequiresAllocId}`)
+      .set('Authorization', `Bearer ${hrToken}`);
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('TYPE_IN_USE');
+  });
+
+  test('Request exceeding remaining allocation balance raises 422', async () => {
+    // Current remaining is 12.00. Create a request for 20.00 days
+    const overReqRes = await query(`
+      INSERT INTO time_off_requests (employee_id, time_off_type_id, start_date, end_date, duration, status, allocation_id)
+      VALUES (4, $1, '2026-07-01', '2026-07-20', 20.00, 'To Approve', $2)
+      RETURNING id
+    `, [testTypeRequiresAllocId, testAllocationId]);
+    const overReqId = overReqRes.rows[0].id;
+
+    const res = await request(app)
+      .patch(`/api/time-off/requests/${overReqId}/approve`)
+      .set('Authorization', `Bearer ${hrToken}`);
+
+    expect(res.status).toBe(422);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error.code).toBe('INSUFFICIENT_ALLOCATION');
+
+    await query('DELETE FROM time_off_requests WHERE id = $1', [overReqId]);
+  });
+
   test('Employee cannot read another employee allocations (self-scoping)', async () => {
     // David Engineer (employee 4) tries to read allocation 1 (belongs to employee 1)
     const res = await request(app)

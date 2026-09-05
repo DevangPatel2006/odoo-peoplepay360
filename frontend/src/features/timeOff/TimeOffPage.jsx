@@ -21,7 +21,7 @@ export const TimeOffPage = () => {
     setLoadingStats(true);
     try {
       const response = await axiosClient.get('/time-off/allocations');
-      const allocs = Array.isArray(response.data) ? response.data : [];
+      const allocs = response.data?.data || [];
       const totalAlloc = allocs.reduce((acc, a) => acc + parseFloat(a.allocated_amount || 0), 0);
       const totalUsed = allocs.reduce((acc, a) => acc + parseFloat(a.taken_amount || 0), 0);
       const totalRem = allocs.reduce((acc, a) => acc + parseFloat(a.remaining_amount || 0), 0);

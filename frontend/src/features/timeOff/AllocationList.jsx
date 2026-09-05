@@ -18,7 +18,7 @@ export const AllocationList = ({ onRefreshBalances }) => {
     setError(null);
     try {
       const response = await axiosClient.get('/time-off/allocations');
-      const list = Array.isArray(response.data) ? response.data : [];
+      const list = response.data?.data || [];
       setAllocations(list);
     } catch (err) {
       console.error('Failed to load allocations:', err);

@@ -15,7 +15,7 @@ export const TimeOffTypeList = () => {
     setError(null);
     try {
       const response = await axiosClient.get('/time-off/types');
-      const list = Array.isArray(response.data) ? response.data : [];
+      const list = response.data?.data || [];
       setTypes(list);
     } catch (err) {
       console.error('Failed to load time off types:', err);

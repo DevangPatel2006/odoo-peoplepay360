@@ -14,12 +14,19 @@ export const listRequests = async (user, queryParams = {}) => {
   );
   const offset = (page - 1) * pageSize;
 
-  const filterEmployeeId = scope === 'own' ? employeeId : (queryParams.employee_id ? parseInt(queryParams.employee_id, 10) : undefined);
+  const filterEmployeeId =
+    scope === 'own'
+      ? employeeId
+      : queryParams.employee_id
+      ? parseInt(queryParams.employee_id, 10)
+      : undefined;
 
   const { rows, total } = await timeOffModel.findRequests({
     company_id: user.companyId,
     employee_id: filterEmployeeId,
-    time_off_type_id: queryParams.time_off_type_id ? parseInt(queryParams.time_off_type_id, 10) : undefined,
+    time_off_type_id: queryParams.time_off_type_id
+      ? parseInt(queryParams.time_off_type_id, 10)
+      : undefined,
     status: queryParams.status,
     limit: pageSize,
     offset,
@@ -44,7 +51,11 @@ export const getRequestById = async (id, user) => {
   }
 
   if (scope === 'own' && request.employee_id !== employeeId) {
-    throw new AppError('Access denied: You may only view your own time off requests', 403, 'FORBIDDEN');
+    throw new AppError(
+      'Access denied: You may only view your own time off requests',
+      403,
+      'FORBIDDEN'
+    );
   }
 
   return request;
@@ -52,10 +63,19 @@ export const getRequestById = async (id, user) => {
 
 export const createRequest = async (user, data) => {
   const { scope, employeeId: selfEmployeeId } = resolveOwnershipScope(user, 'TimeOff');
-  const targetEmployeeId = scope === 'own' ? selfEmployeeId : (data.employee_id ? parseInt(data.employee_id, 10) : selfEmployeeId);
+  const targetEmployeeId =
+    scope === 'own'
+      ? selfEmployeeId
+      : data.employee_id
+      ? parseInt(data.employee_id, 10)
+      : selfEmployeeId;
 
   if (!targetEmployeeId) {
-    throw new AppError('Employee ID is required for time off request', 400, 'VALIDATION_ERROR');
+    throw new AppError(
+      'Employee ID is required for time off request',
+      400,
+      'VALIDATION_ERROR'
+    );
   }
 
   const employee = await employeeModel.findById(targetEmployeeId, user.companyId);
@@ -68,20 +88,58 @@ export const createRequest = async (user, data) => {
     throw new AppError('Invalid time off type', 400, 'VALIDATION_ERROR');
   }
 
-  // If time off type requires allocation, find or check active approved allocation if provided
   let allocationId = data.allocation_id || null;
-  if (timeOffType.requires_allocation && !allocationId) {
-    // Automatically attempt to match an active approved allocation for this employee & type
-    const allocRes = await timeOffModel.findAllocations({
-      company_id: user.companyId,
-      employee_id: targetEmployeeId,
-      time_off_type_id: timeOffType.id,
-      status: 'Approved',
-      limit: 1,
-      offset: 0,
-    });
-    if (allocRes.rows.length > 0) {
-      allocationId = allocRes.rows[0].id;
+
+  // If time off type requires allocation and no allocation_id was explicitly provided, auto-match
+  if (timeOffType.requires_allocation) {
+    if (allocationId) {
+      // Validate provided allocation
+      const alloc = await timeOffModel.findAllocationById(
+        allocationId,
+        user.companyId
+      );
+      if (!alloc || alloc.employee_id !== targetEmployeeId) {
+        throw new AppError(
+          'Specified allocation is invalid or does not belong to this employee',
+          400,
+          'VALIDATION_ERROR'
+        );
+      }
+      if (parseFloat(data.duration) > parseFloat(alloc.remaining_amount)) {
+        throw new AppError(
+          `Requested duration (${data.duration}) exceeds remaining allocation balance (${alloc.remaining_amount})`,
+          422,
+          'INSUFFICIENT_ALLOCATION'
+        );
+      }
+    } else {
+      // Auto-match an active approved allocation for this employee & type
+      const allocRes = await timeOffModel.findAllocations({
+        company_id: user.companyId,
+        employee_id: targetEmployeeId,
+        time_off_type_id: timeOffType.id,
+        status: 'Approved',
+      });
+
+      const reqStart = new Date(data.start_date);
+      const reqEnd = new Date(data.end_date);
+
+      // Filter valid allocations covering date range with sufficient balance
+      const validAllocations = allocRes.rows
+        .filter((alloc) => {
+          const vStart = new Date(alloc.validity_start);
+          const vEnd = new Date(alloc.validity_end);
+          const hasBalance = parseFloat(alloc.remaining_amount) > 0;
+          return reqStart >= vStart && reqEnd <= vEnd && hasBalance;
+        })
+        .sort(
+          (a, b) =>
+            parseFloat(b.remaining_amount) - parseFloat(a.remaining_amount)
+        );
+
+      if (validAllocations.length > 0) {
+        allocationId = validAllocations[0].id;
+      }
     }
   }
 
@@ -111,6 +169,20 @@ export const approveRequest = async (id, user, data = {}) => {
       422,
       'ALLOCATION_REQUIRED'
     );
+  }
+
+  if (request.allocation_id) {
+    const alloc = await timeOffModel.findAllocationById(
+      request.allocation_id,
+      user.companyId
+    );
+    if (alloc && parseFloat(request.duration) > parseFloat(alloc.remaining_amount)) {
+      throw new AppError(
+        `Requested duration (${request.duration}) exceeds remaining allocation balance (${alloc.remaining_amount})`,
+        422,
+        'INSUFFICIENT_ALLOCATION'
+      );
+    }
   }
 
   try {
@@ -145,7 +217,16 @@ export const refuseRequest = async (id, user, data = {}) => {
 };
 
 export const deleteRequest = async (id, user) => {
-  await getRequestById(id, user);
+  const request = await getRequestById(id, user);
+
+  if (request.status === 'Approved') {
+    throw new AppError(
+      'Cannot delete an approved time off request directly. Please refuse or revert it first to preserve allocation balance tracking.',
+      422,
+      'APPROVED_REQUEST_NOT_DELETABLE'
+    );
+  }
+
   await timeOffModel.removeRequest(parseInt(id, 10));
   return true;
 };

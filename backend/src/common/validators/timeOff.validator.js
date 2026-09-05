@@ -50,7 +50,7 @@ export const updateAllocationSchema = Joi.object({
 
 export const queryAllocationSchema = Joi.object({
   page: Joi.number().integer().min(1),
-  pageSize: Joi.number().integer().min(1),
+  pageSize: Joi.number().integer().min(1).max(100),
   employee_id: Joi.number().integer().positive(),
   time_off_type_id: Joi.number().integer().positive(),
   status: Joi.string().valid(...TIME_OFF_ALLOCATION_STATUSES),
@@ -82,7 +82,7 @@ export const reviewRequestSchema = Joi.object({
 
 export const queryRequestSchema = Joi.object({
   page: Joi.number().integer().min(1),
-  pageSize: Joi.number().integer().min(1),
+  pageSize: Joi.number().integer().min(1).max(100),
   employee_id: Joi.number().integer().positive(),
   time_off_type_id: Joi.number().integer().positive(),
   status: Joi.string().valid(...TIME_OFF_REQUEST_STATUSES),
