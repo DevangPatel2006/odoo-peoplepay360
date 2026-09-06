@@ -13,19 +13,22 @@ import { useNavigate } from 'react-router-dom';
 export const AlertsPanel = ({ warnings = [] }) => {
   const navigate = useNavigate();
 
-  const itemsToRender = (warnings || []).map((w) => ({
+  const itemsToRender = (warnings || [])
+  .filter((w) => w.warning_type !== 'DuplicatePayslip')
+  .map((w) => ({
     id: w.id ? `warn-${w.id}` : Math.random(),
     type: w.warning_type || 'payroll-warning',
     title: w.warning_type === 'MissingBankDetails'
       ? `Missing Bank Account: ${w.first_name || ''} ${w.last_name || ''}`
-      : (w.warning_type === 'DuplicatePayslip' ? 'Overlapping Payslip Alert' : (w.warning_type || 'Payroll Anomaly')),
+      : (w.warning_type === 'DuplicatePayslip'
+          ? 'Overlapping Payslip Alert'
+          : (w.warning_type || 'Payroll Anomaly')),
     description: w.message || `Anomaly identified on payrun ${w.payrun_name || ''}`,
     severity: 'critical',
     targetPath: '/payroll',
     actionLabel: 'Resolve in Payroll',
     icon: AlertOctagon,
   }));
-
   return (
     <Card 
       title="Attention Required" 

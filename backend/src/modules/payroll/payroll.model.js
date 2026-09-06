@@ -214,10 +214,26 @@ export const findPayruns = async ({ company_id, status, is_archived = false, sea
     SELECT pr.*,
            ss.name AS salary_structure_name,
            u.work_email AS created_by_email,
-           COUNT(DISTINCT pe.employee_id) AS total_employees_count,
-           COUNT(DISTINCT p.id) AS total_payslips_count,
-           COALESCE(SUM(p.gross_amount), 0.00) AS total_gross_amount,
-           COALESCE(SUM(p.net_amount), 0.00) AS total_net_amount,
+           (
+             SELECT COUNT(DISTINCT pe.employee_id) 
+             FROM payrun_employees pe 
+             WHERE pe.payrun_id = pr.id
+           ) AS total_employees_count,
+           (
+             SELECT COUNT(p.id) 
+             FROM payslips p 
+             WHERE p.payrun_id = pr.id
+           ) AS total_payslips_count,
+           (
+             SELECT COALESCE(SUM(p.gross_amount), 0.00) 
+             FROM payslips p 
+             WHERE p.payrun_id = pr.id
+           ) AS total_gross_amount,
+           (
+             SELECT COALESCE(SUM(p.net_amount), 0.00) 
+             FROM payslips p 
+             WHERE p.payrun_id = pr.id
+           ) AS total_net_amount,
            (
              SELECT COUNT(*) 
              FROM payroll_warnings pw 
@@ -227,10 +243,7 @@ export const findPayruns = async ({ company_id, status, is_archived = false, sea
     FROM payruns pr
     JOIN salary_structures ss ON ss.id = pr.salary_structure_id
     LEFT JOIN users u ON u.id = pr.created_by_user_id
-    LEFT JOIN payrun_employees pe ON pe.payrun_id = pr.id
-    LEFT JOIN payslips p ON p.payrun_id = pr.id
     WHERE ${whereClause}
-    GROUP BY pr.id, ss.id, u.id
     ORDER BY pr.period_start DESC, pr.id DESC
   `;
 
@@ -248,10 +261,26 @@ export const findPayrunById = async (id, company_id) => {
     SELECT pr.*,
            ss.name AS salary_structure_name,
            u.work_email AS created_by_email,
-           COUNT(DISTINCT pe.employee_id) AS total_employees_count,
-           COUNT(DISTINCT p.id) AS total_payslips_count,
-           COALESCE(SUM(p.gross_amount), 0.00) AS total_gross_amount,
-           COALESCE(SUM(p.net_amount), 0.00) AS total_net_amount,
+           (
+             SELECT COUNT(DISTINCT pe.employee_id) 
+             FROM payrun_employees pe 
+             WHERE pe.payrun_id = pr.id
+           ) AS total_employees_count,
+           (
+             SELECT COUNT(p.id) 
+             FROM payslips p 
+             WHERE p.payrun_id = pr.id
+           ) AS total_payslips_count,
+           (
+             SELECT COALESCE(SUM(p.gross_amount), 0.00) 
+             FROM payslips p 
+             WHERE p.payrun_id = pr.id
+           ) AS total_gross_amount,
+           (
+             SELECT COALESCE(SUM(p.net_amount), 0.00) 
+             FROM payslips p 
+             WHERE p.payrun_id = pr.id
+           ) AS total_net_amount,
            (
              SELECT COUNT(*) 
              FROM payroll_warnings pw 
@@ -261,10 +290,7 @@ export const findPayrunById = async (id, company_id) => {
     FROM payruns pr
     JOIN salary_structures ss ON ss.id = pr.salary_structure_id
     LEFT JOIN users u ON u.id = pr.created_by_user_id
-    LEFT JOIN payrun_employees pe ON pe.payrun_id = pr.id
-    LEFT JOIN payslips p ON p.payrun_id = pr.id
     WHERE pr.id = $1 AND pr.company_id = $2
-    GROUP BY pr.id, ss.id, u.id
   `;
   const res = await query(sql, [id, company_id]);
   return res.rows[0] || null;

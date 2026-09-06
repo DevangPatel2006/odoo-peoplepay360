@@ -427,38 +427,7 @@ export const PayrunProcessing = ({ payrun, onDone }) => {
         </Card>
       </div>
 
-      {/* PAYROLL WARNINGS PANEL (IF ANY) */}
-      {warnings.length > 0 && (
-        <Card title={`Unresolved Payroll Warnings (${warnings.length})`} subtitle="Compliance & contract issues detected by engine">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {warnings.map((w) => (
-              <div 
-                key={w.id} 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between', 
-                  padding: '10px 14px', 
-                  backgroundColor: '#FFFBEB', 
-                  border: '1px solid #FDE68A', 
-                  borderRadius: '8px', 
-                  fontSize: '0.875rem' 
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <AlertTriangle size={16} color="#D97706" />
-                  <div>
-                    <strong style={{ color: '#92400E' }}>{w.warning_type}</strong>
-                    <span style={{ color: '#78350F', marginLeft: '6px' }}>{w.description}</span>
-                  </div>
-                </div>
-                <Badge variant="warning">Action Required</Badge>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
+     
       {/* PAYSLIPS TABLE */}
       <Card 
         title="Evaluated Employee Payslips" 
