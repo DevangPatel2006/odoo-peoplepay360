@@ -65,6 +65,7 @@ export const DepartmentOverview = ({ data: initialData }) => {
             return (
               <div
                 key={dept.department_id || dept.department_name}
+                className="dashboard-interactive-row"
                 style={{
                   padding: '12px',
                   backgroundColor: '#F8FAFC',

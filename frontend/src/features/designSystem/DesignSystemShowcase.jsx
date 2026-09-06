@@ -100,7 +100,7 @@ export const DesignSystemShowcase = () => {
                 label="Department"
                 options={[
                   { value: 'hr', label: 'Human Resources' },
-                  { value: 'eng', label: 'Software Engineering' },
+                  { value: 'eng', label: 'Engineering' },
                   { value: 'fin', label: 'Finance & Accounting' }
                 ]}
               />
@@ -129,7 +129,7 @@ export const DesignSystemShowcase = () => {
             <Table headers={['Employee', 'Department', 'Contract Status', 'Basic Wage', 'Actions']}>
               <tr>
                 <td><strong>Alexander Wright</strong><br/><span className="text-xs text-muted">alex.w@peoplepay.io</span></td>
-                <td>Software Engineering</td>
+                <td>Engineering</td>
                 <td><Badge variant="success" dot>Running</Badge></td>
                 <td>$8,500.00 / mo</td>
                 <td>

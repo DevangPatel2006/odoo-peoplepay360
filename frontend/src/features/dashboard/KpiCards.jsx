@@ -126,42 +126,73 @@ export const KpiCards = ({ data = {} }) => {
             onClick={kpi.onClick}
             style={{ 
               borderTop: `3px solid ${style.iconColor}`,
-              height: '100%',
+              minHeight: '148px',
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between'
             }}
           >
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span className="text-sm text-secondary font-medium">{kpi.title}</span>
-                <div style={{
-                  padding: '8px',
-                  borderRadius: '10px',
-                  backgroundColor: style.bg,
-                  color: style.iconColor,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <Icon size={20} />
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <span 
+                  className="text-sm text-secondary font-medium"
+                  style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  title={kpi.title}
+                >
+                  {kpi.title}
+                </span>
+                <div 
+                  className="kpi-icon-wrapper"
+                  style={{
+                    padding: '8px',
+                    borderRadius: '10px',
+                    backgroundColor: style.bg,
+                    color: style.iconColor,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    transition: 'transform 0.2s cubic-bezier(0.16, 1, 0.3, 1)'
+                  }}
+                >
+                  <Icon size={19} />
                 </div>
               </div>
 
-              <div style={{
-                fontSize: typeof kpi.value === 'number' ? '1.875rem' : '1.35rem',
-                fontWeight: '700',
-                color: '#12151A',
-                marginTop: '12px',
-                lineHeight: 1.2
-              }}>
+              <div 
+                style={{
+                  fontSize: typeof kpi.value === 'number' ? '1.75rem' : '1.25rem',
+                  fontWeight: '700',
+                  color: '#12151A',
+                  marginTop: '10px',
+                  lineHeight: 1.2,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}
+                title={String(kpi.value)}
+              >
                 {kpi.value}
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '14px', paddingTop: '8px', borderTop: '1px solid #F1F5F9' }}>
-              <span className="text-xs text-muted">{kpi.subtitle}</span>
-              <Badge variant={kpi.badge.type}>{kpi.badge.text}</Badge>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              marginTop: '14px', 
+              paddingTop: '10px', 
+              borderTop: '1px solid #F1F5F9',
+              gap: '8px'
+            }}>
+              <span 
+                className="text-xs text-muted"
+                style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}
+                title={kpi.subtitle}
+              >
+                {kpi.subtitle}
+              </span>
+              <Badge variant={kpi.badge.type} style={{ flexShrink: 0 }}>{kpi.badge.text}</Badge>
             </div>
           </Card>
         );

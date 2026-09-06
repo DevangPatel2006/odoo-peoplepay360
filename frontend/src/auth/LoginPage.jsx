@@ -6,8 +6,8 @@ import { LogIn } from 'lucide-react';
 import axiosClient from '../api/axiosClient';
 
 export const LoginPage = () => {
-  const [email, setEmail] = useState('admin@peoplepay360.com');
-  const [password, setPassword] = useState('Password123!');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { login } = useApp();
@@ -35,6 +35,7 @@ export const LoginPage = () => {
       const appUser = {
         id: apiUser.id,
         employeeId: apiUser.employee?.employee_code || `EMP-${apiUser.id}`,
+        employeeDbId: apiUser.employee_id || apiUser.employee?.id,
         name: apiUser.employee
           ? `${apiUser.employee.first_name} ${apiUser.employee.last_name}`
           : apiUser.work_email.split('@')[0],
@@ -46,7 +47,13 @@ export const LoginPage = () => {
 
       login(appUser, authToken);
       setLoading(false);
-      navigate('/dashboard');
+
+      const isEmployeeOnly = userRoles.length > 0 && userRoles.every((r) => r === 'Employee');
+      if (isEmployeeOnly) {
+        navigate('/attendance');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (err) {
       console.error('Login error:', err);
       const errMsg =

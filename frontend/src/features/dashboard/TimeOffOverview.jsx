@@ -31,23 +31,28 @@ export const TimeOffOverview = ({ data = [], recentRequests = [] }) => {
             const isApproved = req.status === 'Approved';
 
             return (
-              <div key={req.id} style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
-                fontSize: '0.875rem'
-              }}>
-                <div>
-                  <div className="font-semibold" style={{ color: '#0F172A' }}>{empName}</div>
-                  <div className="text-xs text-secondary">
+              <div 
+                key={req.id} 
+                className="dashboard-interactive-row"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '10px 12px',
+                  borderRadius: '8px',
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  fontSize: '0.875rem',
+                  gap: '8px'
+                }}
+              >
+                <div style={{ overflow: 'hidden', minWidth: 0, flex: 1 }}>
+                  <div className="font-semibold" style={{ color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{empName}</div>
+                  <div className="text-xs text-secondary" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {req.time_off_type_name || 'Leave'} • {req.duration} day{parseFloat(req.duration) !== 1 ? 's' : ''}{dateStr}
                   </div>
                 </div>
-                <Badge variant={isApproved ? 'success' : (req.status === 'Refused' ? 'danger' : 'warning')}>
+                <Badge variant={isApproved ? 'success' : (req.status === 'Refused' ? 'danger' : 'warning')} style={{ flexShrink: 0 }}>
                   {req.status || 'Pending'}
                 </Badge>
               </div>
@@ -55,23 +60,28 @@ export const TimeOffOverview = ({ data = [], recentRequests = [] }) => {
           })
         ) : typeRows.length > 0 ? (
           typeRows.slice(0, 4).map((t) => (
-            <div key={t.time_off_type_id || t.time_off_type_name} style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '10px 12px',
-              borderRadius: '8px',
-              backgroundColor: '#F8FAFC',
-              border: '1px solid #E2E8F0',
-              fontSize: '0.875rem'
-            }}>
-              <div>
-                <div className="font-semibold" style={{ color: '#0F172A' }}>{t.time_off_type_name}</div>
-                <div className="text-xs text-secondary">
+            <div 
+              key={t.time_off_type_id || t.time_off_type_name} 
+              className="dashboard-interactive-row"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 12px',
+                borderRadius: '8px',
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                fontSize: '0.875rem',
+                gap: '8px'
+              }}
+            >
+              <div style={{ overflow: 'hidden', minWidth: 0, flex: 1 }}>
+                <div className="font-semibold" style={{ color: '#0F172A', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.time_off_type_name}</div>
+                <div className="text-xs text-secondary" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   Allocated: {t.total_allocated} {t.unit || 'Days'} • Approved: {t.approved_amount}
                 </div>
               </div>
-              <Badge variant="neutral">
+              <Badge variant="neutral" style={{ flexShrink: 0 }}>
                 {t.total_remaining} {t.unit || 'Days'} Left
               </Badge>
             </div>

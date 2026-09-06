@@ -26,11 +26,11 @@ export const ReportsPage = () => {
 
   // Executive Data Reports
   const deptReportData = [
-    { name: 'Software Engineering', headcount: 54, grossCost: 215000, avgWage: 3981.48, percentage: 44.3, color: '#059669' },
-    { name: 'Finance & Accounting', headcount: 24, grossCost: 92000, avgWage: 3833.33, percentage: 18.9, color: '#0284C7' },
+    { name: 'Engineering', headcount: 44, grossCost: 215000, avgWage: 4886.36, percentage: 44.3, color: '#059669' },
+    { name: 'Finance & Accounting', headcount: 22, grossCost: 92000, avgWage: 4181.81, percentage: 18.9, color: '#0284C7' },
     { name: 'Sales & Marketing', headcount: 32, grossCost: 85200, avgWage: 2662.50, percentage: 17.6, color: '#D97706' },
     { name: 'Human Resources', headcount: 18, grossCost: 68000, avgWage: 3777.78, percentage: 14.0, color: '#10B981' },
-    { name: 'Executive & Admin', headcount: 14, grossCost: 25000, avgWage: 1785.71, percentage: 5.2, color: '#475569' },
+    { name: 'Executive', headcount: 16, grossCost: 25000, avgWage: 1562.50, percentage: 5.2, color: '#475569' },
   ];
 
   const periodTrendData = [
@@ -114,10 +114,11 @@ export const ReportsPage = () => {
             style={{ width: '200px' }}
           >
             <option value="ALL">All Departments</option>
-            <option value="Software Engineering">Software Engineering</option>
+            <option value="Engineering">Engineering</option>
             <option value="Human Resources">Human Resources</option>
             <option value="Finance & Accounting">Finance & Accounting</option>
             <option value="Sales & Marketing">Sales & Marketing</option>
+            <option value="Executive">Executive</option>
           </Select>
 
           <Select

@@ -7,6 +7,22 @@ const router = Router();
 
 router.use(authenticate);
 
+// Restrict executive dashboard intelligence to management and payroll personnel only
+router.use((req, res, next) => {
+  const roles = req.user?.roles || [];
+  const isEmployeeOnly = roles.length > 0 && roles.every((r) => r === 'Employee');
+  if (isEmployeeOnly) {
+    return res.status(403).json({
+      success: false,
+      error: {
+        code: 'FORBIDDEN',
+        message: 'Access denied: Executive workforce and payroll dashboard is restricted to management personnel.',
+      },
+    });
+  }
+  return next();
+});
+
 router.get('/', requirePermission('Employees', 'read'), dashboardController.getDashboardSummary);
 router.get('/kpis', requirePermission('Employees', 'read'), dashboardController.getKpis);
 router.get('/salary-cost-by-department', requirePermission('Payslips', 'read'), dashboardController.getSalaryCostByDepartment);

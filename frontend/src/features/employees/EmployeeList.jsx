@@ -237,10 +237,23 @@ export const EmployeeList = () => {
             style={{ width: '180px' }}
           >
             <option value="ALL">All Departments</option>
-            <option value="Software Engineering">Software Engineering</option>
+            <option value="Engineering">Engineering</option>
             <option value="Human Resources">Human Resources</option>
             <option value="Finance & Accounting">Finance & Accounting</option>
             <option value="Sales & Marketing">Sales & Marketing</option>
+            <option value="Executive">Executive</option>
+          </Select>
+
+          <Select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            style={{ width: '150px' }}
+          >
+            <option value="ALL">All Types</option>
+            <option value="Full-time">Full-time</option>
+            <option value="Part-time">Part-time</option>
+            <option value="Contract">Contract</option>
+            <option value="Intern">Intern</option>
           </Select>
 
           <Select

@@ -43,6 +43,63 @@ export const MainLayout = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // Dynamic mouse-resizable navbar
+  const DEFAULT_SIDEBAR_WIDTH = 260;
+  const MIN_SIDEBAR_WIDTH = 190;
+  const MAX_SIDEBAR_WIDTH = 480;
+
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    try {
+      const saved = localStorage.getItem('payops_sidebar_width');
+      const parsed = saved ? parseInt(saved, 10) : DEFAULT_SIDEBAR_WIDTH;
+      return !isNaN(parsed) && parsed >= MIN_SIDEBAR_WIDTH && parsed <= MAX_SIDEBAR_WIDTH
+        ? parsed
+        : DEFAULT_SIDEBAR_WIDTH;
+    } catch {
+      return DEFAULT_SIDEBAR_WIDTH;
+    }
+  });
+
+  const [isResizing, setIsResizing] = useState(false);
+
+  const startResizing = React.useCallback((e) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e) => {
+      let newWidth = e.clientX;
+      if (newWidth < MIN_SIDEBAR_WIDTH) newWidth = MIN_SIDEBAR_WIDTH;
+      if (newWidth > MAX_SIDEBAR_WIDTH) newWidth = MAX_SIDEBAR_WIDTH;
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      setSidebarWidth((finalW) => {
+        try {
+          localStorage.setItem('payops_sidebar_width', String(finalW));
+        } catch {}
+        return finalW;
+      });
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing]);
+
   const userRoles = Array.isArray(user?.roles) && user.roles.length > 0
     ? user.roles
     : (user?.role ? [user.role] : ['Employee']);
@@ -52,7 +109,7 @@ export const MainLayout = () => {
 
   // All 7 Workflow Modules
   const allNavItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User', 'Employee'] },
+    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, roles: ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User'] },
     { path: '/employees', label: 'Employees', icon: Users, roles: ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User'] },
     { path: '/contracts', label: 'Contracts', icon: FileText, roles: ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User'] },
     { path: '/attendance', label: 'Attendance', icon: Clock, roles: ['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User', 'Employee'] },
@@ -86,8 +143,28 @@ export const MainLayout = () => {
         />
       )}
 
-      {/* LEFT SIDEBAR */}
-      <aside className={`sidebar ${!sidebarOpen ? 'sidebar-collapsed' : ''} ${mobileSidebarOpen ? 'sidebar-mobile-open' : ''}`}>
+      {/* LEFT SIDEBAR (Dynamic Mouse-Resizable) */}
+      <aside 
+        className={`sidebar ${!sidebarOpen ? 'sidebar-collapsed' : ''} ${mobileSidebarOpen ? 'sidebar-mobile-open' : ''} ${isResizing ? 'is-resizing' : ''}`}
+        style={sidebarOpen ? { width: `${sidebarWidth}px`, minWidth: `${sidebarWidth}px` } : undefined}
+      >
+        {/* Mouse Drag Resize Handle (only active when sidebar is expanded) */}
+        {sidebarOpen && (
+          <div
+            className={`sidebar-resizer ${isResizing ? 'is-active' : ''}`}
+            onMouseDown={startResizing}
+            onDoubleClick={() => {
+              setSidebarWidth(DEFAULT_SIDEBAR_WIDTH);
+              try { localStorage.setItem('payops_sidebar_width', String(DEFAULT_SIDEBAR_WIDTH)); } catch {}
+            }}
+            role="separator"
+            aria-orientation="vertical"
+            title="Click and drag with mouse to adjust navbar width (Double-click to reset)"
+          >
+            <div className="sidebar-resizer-handle" />
+          </div>
+        )}
+
         {/* Sidebar Logo */}
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">P</div>
@@ -96,7 +173,11 @@ export const MainLayout = () => {
 
         {/* Primary Workflow Navigation (RBAC Filtered) */}
         <nav className="sidebar-nav">
-          {sidebarOpen && <div className="sidebar-section-title">Workflow Modules ({userRole})</div>}
+          {sidebarOpen && (
+            <div className="sidebar-section-title" title={`Workflow Modules (${userRole})`}>
+              Workflow Modules
+            </div>
+          )}
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname.startsWith(item.path) || (item.path === '/dashboard' && location.pathname === '/');

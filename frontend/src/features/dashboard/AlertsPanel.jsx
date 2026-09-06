@@ -57,6 +57,7 @@ export const AlertsPanel = ({ warnings = [] }) => {
           return (
             <div 
               key={item.id}
+              className="dashboard-interactive-row"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -65,7 +66,7 @@ export const AlertsPanel = ({ warnings = [] }) => {
                 borderRadius: '12px',
                 backgroundColor: isCritical ? '#FFF1F2' : '#FEF3C7',
                 border: `1px solid ${isCritical ? '#FECDD3' : '#FDE68A'}`,
-                transition: 'all 150ms ease',
+                transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
                 flexWrap: 'wrap',
                 gap: '12px'
               }}

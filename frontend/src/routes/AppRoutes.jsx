@@ -14,10 +14,26 @@ import { TimeOffPage } from '../features/timeOff/TimeOffPage';
 import { SalaryConfigPage } from '../features/payroll/SalaryConfigPage';
 import { ReportsPage } from '../features/reports/ReportsPage';
 import { DesignSystemShowcase } from '../features/designSystem/DesignSystemShowcase';
+import { useApp } from '../store';
+
+// Smart redirect that sends unauthenticated users to /login,
+// employees to /attendance, and management to /dashboard
+const RootRedirect = () => {
+  const { user, token } = useApp();
+  if (!token || !user) {
+    return <Navigate to="/login" replace />;
+  }
+  const userRoles = Array.isArray(user?.roles) ? user.roles : [user?.role || ''];
+  const isEmployeeOnly = userRoles.length > 0 && userRoles.every((r) => r === 'Employee');
+  return <Navigate to={isEmployeeOnly ? '/attendance' : '/dashboard'} replace />;
+};
 
 export const AppRoutes = () => {
   return (
     <Routes>
+      {/* Root Path: Defaults to /login when unauthenticated */}
+      <Route path="/" element={<RootRedirect />} />
+
       {/* Public Auth Routes */}
       <Route element={<AuthLayout />}>
         <Route path="/login" element={<LoginPage />} />
@@ -26,10 +42,9 @@ export const AppRoutes = () => {
       {/* Main Application Shell Protected Routes */}
       <Route element={<RoleGuard />}>
         <Route element={<MainLayout />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          
+          {/* Executive Dashboard: Restricted to Admin and HR/Payroll Management */}
           <Route element={<RoleGuard allowedRoles={['Admin', 'HR Manager', 'HR Payroll Manager', 'HR Payroll User']} />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/employees" element={<EmployeeList />} />
             <Route path="/contracts" element={<ContractList />} />
           </Route>
@@ -54,7 +69,7 @@ export const AppRoutes = () => {
       </Route>
 
       {/* Fallback Catch-all Route */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<RootRedirect />} />
     </Routes>
   );
 };

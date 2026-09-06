@@ -117,7 +117,7 @@ export const DashboardPage = () => {
             <span>Filter Analytics:</span>
           </div>
 
-          <div style={{ width: '190px' }}>
+          <div style={{ width: '205px' }}>
             <Select
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
@@ -128,7 +128,7 @@ export const DashboardPage = () => {
             />
           </div>
 
-          <div style={{ width: '180px' }}>
+          <div style={{ width: '220px' }}>
             <Select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}

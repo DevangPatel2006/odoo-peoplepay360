@@ -56,9 +56,17 @@ export const AccessDenied = ({ requiredRole }) => {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
-          <Button variant="primary" icon={ArrowLeft} onClick={() => navigate('/dashboard')}>
-            Return to Dashboard
-          </Button>
+          {(() => {
+            const userRoles = Array.isArray(user?.roles) ? user.roles : [user?.role || ''];
+            const isEmployeeOnly = userRoles.length > 0 && userRoles.every((r) => r === 'Employee');
+            const homePath = isEmployeeOnly ? '/attendance' : '/dashboard';
+            const homeLabel = isEmployeeOnly ? 'Return to Attendance' : 'Return to Dashboard';
+            return (
+              <Button variant="primary" icon={ArrowLeft} onClick={() => navigate(homePath)}>
+                {homeLabel}
+              </Button>
+            );
+          })()}
         </div>
       </Card>
     </div>
