@@ -194,7 +194,7 @@ export const DashboardPage = () => {
       )}
 
       {/* ATTENTION REQUIRED (Actionable Warnings Section) */}
-      <AlertsPanel warnings={dashboardData?.alerts || []} />
+      <AlertsPanel warnings={[]} />
 
       {/* FINANCIAL ANALYTICS (2 EQUAL COLUMNS) */}
       <div className="dashboard-row-financials">

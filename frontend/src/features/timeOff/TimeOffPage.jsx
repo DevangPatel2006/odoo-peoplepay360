@@ -89,32 +89,7 @@ export const TimeOffPage = () => {
         </div>
       </div>
 
-      {/* ALLOCATION BALANCE OVERVIEW CARDS */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
-        <Card>
-          <span className="text-sm text-secondary font-medium">Total Allocated Quota</span>
-          <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#0F172A', marginTop: '8px' }}>
-            {stats.allocated} Days
-          </div>
-          <div className="text-xs text-muted" style={{ marginTop: '2px' }}>Approved allocation allowances</div>
-        </Card>
-
-        <Card>
-          <span className="text-sm text-secondary font-medium">Total Used Days</span>
-          <div style={{ fontSize: '1.75rem', fontWeight: '700', color: '#64748B', marginTop: '8px' }}>
-            {stats.used} Days
-          </div>
-          <div className="text-xs text-muted" style={{ marginTop: '2px' }}>Approved leave consumption</div>
-        </Card>
-
-        <Card>
-          <span className="text-sm text-secondary font-medium">Remaining Available Balance</span>
-          <div style={{ fontSize: '1.75rem', fontWeight: '700', color: stats.remaining > 0 ? '#059669' : '#64748B', marginTop: '8px' }}>
-            {stats.remaining} Days
-          </div>
-          <div className="text-xs text-success" style={{ marginTop: '2px' }}>Available across active balances</div>
-        </Card>
-      </div>
+      
 
       {/* NAVIGATION TABS & TAB CONTENT */}
       <Card>

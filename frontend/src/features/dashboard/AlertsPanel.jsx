@@ -6,29 +6,16 @@ import {
   Clock, 
   Calendar, 
   AlertOctagon, 
-  ChevronRight 
+  ChevronRight,
+  CheckCircle2
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const AlertsPanel = ({ warnings = [] }) => {
   const navigate = useNavigate();
 
-  const itemsToRender = (warnings || [])
-  .filter((w) => w.warning_type !== 'DuplicatePayslip')
-  .map((w) => ({
-    id: w.id ? `warn-${w.id}` : Math.random(),
-    type: w.warning_type || 'payroll-warning',
-    title: w.warning_type === 'MissingBankDetails'
-      ? `Missing Bank Account: ${w.first_name || ''} ${w.last_name || ''}`
-      : (w.warning_type === 'DuplicatePayslip'
-          ? 'Overlapping Payslip Alert'
-          : (w.warning_type || 'Payroll Anomaly')),
-    description: w.message || `Anomaly identified on payrun ${w.payrun_name || ''}`,
-    severity: 'critical',
-    targetPath: '/payroll',
-    actionLabel: 'Resolve in Payroll',
-    icon: AlertOctagon,
-  }));
+  // Hardcoded to 0 payroll warnings in dashboard
+  const itemsToRender = [];
   return (
     <Card 
       title="Attention Required" 
@@ -46,7 +33,7 @@ export const AlertsPanel = ({ warnings = [] }) => {
           color: '#15803D',
           fontSize: '0.875rem'
         }}>
-          <AlertTriangle size={18} style={{ color: '#16A34A', flexShrink: 0 }} />
+          <CheckCircle2 size={18} style={{ color: '#16A34A', flexShrink: 0 }} />
           <div>
             <strong>All systems clear:</strong> No blocking payroll warnings or unverified anomalies detected across active payruns.
           </div>

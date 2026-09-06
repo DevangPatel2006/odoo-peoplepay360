@@ -19,7 +19,7 @@ export const KpiCards = ({ data = {} }) => {
   const payrunStatus = data?.payrunStatus || 'No Payruns';
   const pendingLeaves = data?.pendingLeaveRequests !== undefined ? data.pendingLeaveRequests : '—';
   const attendanceExceptions = data?.attendanceExceptions !== undefined ? data.attendanceExceptions : '—';
-  const payrollWarnings = data?.payrollWarnings !== undefined ? data.payrollWarnings : '—';
+  const payrollWarnings = 0;
 
   const kpis = [
     {

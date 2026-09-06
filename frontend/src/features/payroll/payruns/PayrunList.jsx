@@ -35,7 +35,7 @@ export const PayrunList = ({ onStartWizard, onSelectPayrun }) => {
           <p className="text-sm text-secondary">Historical payruns, payslip evaluation batches, and payment states.</p>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <Button variant="outline" size="sm" icon={RefreshCw} onClick={fetchPayruns} loading={loading}>
+          <Button variant="outline" size="sm" icon={RefreshCw} onClick={fetchPayruns} loading={loading} style={{ color: '#0F172A', borderColor: '#CBD5E1' }}>
             Refresh
           </Button>
           <Button variant="accent" icon={Plus} onClick={onStartWizard}>

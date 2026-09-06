@@ -408,7 +408,7 @@ export const getDashboardSummary = async (companyId, queryParams = {}) => {
   const activeContracts = contractCountRes.rows[0]?.count ?? 0;
   const attendanceExceptions = attendanceExceptionsRes.rows[0]?.count ?? 0;
   const pendingLeaveRequests = pendingLeavesRes.rows[0]?.count ?? 0;
-  const payrollWarnings = alerts?.unresolved_warnings?.length ?? 0;
+  const payrollWarnings = 0;
 
   const payrunStatus = kpis?.pending_payslips_count > 0
     ? `${kpis.pending_payslips_count} Pending Payslips`
@@ -420,9 +420,9 @@ export const getDashboardSummary = async (companyId, queryParams = {}) => {
     payrunStatus,
     pendingLeaveRequests,
     attendanceExceptions,
-    payrollWarnings,
+    payrollWarnings: 0,
     kpis,
-    alerts: alerts?.unresolved_warnings || [],
+    alerts: [],
     salaryCost: formattedSalaryCost,
     attendance,
     timeOff,

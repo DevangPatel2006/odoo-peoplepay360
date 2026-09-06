@@ -311,7 +311,7 @@ export const PayrunProcessing = ({ payrun, onDone }) => {
             icon={RefreshCw}
             loading={loading}
             onClick={() => loadPayrunDetails(payrunId)}
-            style={{ color: '#FFFFFF', borderColor: '#334155' }}
+            style={{ color: '#0F172A', borderColor: '#CBD5E1' }}
           >
             Refresh
           </Button>
@@ -322,7 +322,7 @@ export const PayrunProcessing = ({ payrun, onDone }) => {
             icon={Download}
             loading={loadingAction === 'export-pdf'}
             onClick={handleExportSummaryPdf}
-            style={{ color: '#FFFFFF', borderColor: '#334155' }}
+            style={{ color: '#0F172A', borderColor: '#CBD5E1' }}
           >
             Export Summary (PDF)
           </Button>
@@ -346,7 +346,7 @@ export const PayrunProcessing = ({ payrun, onDone }) => {
                 icon={RefreshCw}
                 loading={loadingAction === 'compute'}
                 onClick={handleCompute}
-                style={{ color: '#FFFFFF', borderColor: '#334155' }}
+                style={{ color: '#0F172A', borderColor: '#CBD5E1' }}
               >
                 Recompute
               </Button>
@@ -368,7 +368,7 @@ export const PayrunProcessing = ({ payrun, onDone }) => {
                 icon={Mail}
                 loading={loadingAction === 'send'}
                 onClick={handleSendPayslips}
-                style={{ color: '#FFFFFF', borderColor: '#334155' }}
+                style={{ color: '#0F172A', borderColor: '#CBD5E1' }}
               >
                 Send Payslip Emails
               </Button>
@@ -388,7 +388,7 @@ export const PayrunProcessing = ({ payrun, onDone }) => {
               icon={Mail}
               loading={loadingAction === 'send'}
               onClick={handleSendPayslips}
-              style={{ color: '#FFFFFF', borderColor: '#334155' }}
+              style={{ color: '#0F172A', borderColor: '#CBD5E1' }}
             >
               Send Payslip Emails
             </Button>
