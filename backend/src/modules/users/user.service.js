@@ -3,11 +3,11 @@ import userModel from './user.model.js';
 import env from '../../config/env.js';
 import { AppError } from '../../middleware/errorHandler.js';
 
-export const listUsers = async ({ page = 1, pageSize = env.pagination.defaultPageSize }) => {
-  const limit = Math.min(parseInt(pageSize, 10) || env.pagination.defaultPageSize, env.pagination.maxPageSize);
+export const listUsers = async ({ page = 1, pageSize = 200, search = '' } = {}) => {
+  const limit = Math.min(parseInt(pageSize, 10) || 200, 500);
   const offset = ((parseInt(page, 10) || 1) - 1) * limit;
 
-  const { rows, total } = await userModel.findAll({ limit, offset });
+  const { rows, total } = await userModel.findAll({ limit, offset, search: String(search || '').trim() });
   return {
     users: rows,
     meta: {
@@ -45,7 +45,7 @@ export const createUser = async ({ employee_id, work_email, password, is_active 
 };
 
 export const updateUser = async (id, data) => {
-  await getUserById(id);
+  const existing = await getUserById(id);
 
   const updates = {};
   if (data.work_email !== undefined) updates.work_email = data.work_email;
@@ -56,6 +56,20 @@ export const updateUser = async (id, data) => {
   }
 
   await userModel.update(id, updates);
+
+  if (data.role_ids !== undefined) {
+    const ids = Array.isArray(data.role_ids) ? data.role_ids : [data.role_ids];
+    await userModel.setUserRoles(id, ids);
+  }
+
+  if (data.job_position_id && existing.employee_id) {
+    const { query } = await import('../../config/db.js');
+    await query('UPDATE employees SET job_position_id = $1 WHERE id = $2', [
+      parseInt(data.job_position_id, 10),
+      existing.employee_id,
+    ]);
+  }
+
   return userModel.findById(id);
 };
 

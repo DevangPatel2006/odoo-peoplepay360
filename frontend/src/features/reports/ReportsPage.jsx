@@ -57,8 +57,35 @@ export const ReportsPage = () => {
 
   const totalPayrollCost = filteredDepts.reduce((acc, curr) => acc + curr.grossCost, 0);
 
-  const handleExportCSV = () => {
-    addToast('Executive report exported as CSV document', 'success');
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const handleExportPDF = async () => {
+    setDownloadingPdf(true);
+    try {
+      const response = await axiosClient.get('/reports/executive/pdf', {
+        params: {
+          period: periodFilter,
+          department: deptFilter,
+          employeeType: typeFilter,
+        },
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Executive_Workforce_Payroll_Report_${periodFilter}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      addToast('Executive Report PDF downloaded successfully!', 'success');
+    } catch (err) {
+      console.error('Failed to download executive report PDF:', err);
+      window.print();
+      addToast('Opening report print / PDF preview...', 'info');
+    } finally {
+      setDownloadingPdf(false);
+    }
   };
 
   return (
@@ -72,8 +99,8 @@ export const ReportsPage = () => {
           </p>
         </div>
         <div className="page-actions">
-          <Button variant="outline" icon={Download} onClick={handleExportCSV}>
-            Export Executive Report (CSV)
+          <Button variant="outline" icon={Download} loading={downloadingPdf} onClick={handleExportPDF}>
+            Export Executive Report (PDF)
           </Button>
         </div>
       </div>

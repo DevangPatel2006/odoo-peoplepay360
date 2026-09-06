@@ -67,8 +67,33 @@ export const getOrGeneratePdf = async (id, user) => {
   };
 };
 
+export const sendEmail = async (id, user) => {
+  const payslip = await getPayslipById(id, user);
+
+  let pdfPath = payslip.pdf_file_path;
+  if (!pdfPath || !fs.existsSync(pdfPath)) {
+    pdfPath = await generatePayslipPdf(payslip);
+    await query('UPDATE payslips SET pdf_file_path = $1 WHERE id = $2', [pdfPath, payslip.id]);
+  }
+
+  const { sendPayslipEmail } = await import('./payslip.mailer.js');
+  const mailResult = await sendPayslipEmail(payslip, pdfPath);
+  await query('UPDATE payslips SET sent_at = CURRENT_TIMESTAMP WHERE id = $1', [payslip.id]);
+
+  return {
+    payslip_id: payslip.id,
+    recipient: payslip.work_email,
+    employee_name: `${payslip.employee_first_name || ''} ${payslip.employee_last_name || ''}`.trim(),
+    success: mailResult.success,
+    messageId: mailResult.messageId,
+    previewUrl: mailResult.previewUrl || null,
+    error: mailResult.error || null,
+  };
+};
+
 export default {
   listPayslips,
   getPayslipById,
   getOrGeneratePdf,
+  sendEmail,
 };

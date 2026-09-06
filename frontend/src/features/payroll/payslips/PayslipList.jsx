@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Badge, Button, Input, Select, Pagination, EmptyState, Spinner, Alert } from '../../../components/ui';
 import { PayslipDetail } from './PayslipDetail';
-import { Eye, Search, ArrowRight, RefreshCw } from 'lucide-react';
+import { Eye, Search, ArrowRight, RefreshCw, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axiosClient from '../../../api/axiosClient';
+import { useApp } from '../../../store';
 
 export const PayslipList = () => {
+  const { addToast } = useApp();
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -14,6 +16,7 @@ export const PayslipList = () => {
   const [selectedPayslip, setSelectedPayslip] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [loadingDetailId, setLoadingDetailId] = useState(null);
+  const [downloadingSlipId, setDownloadingSlipId] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   const navigate = useNavigate();
@@ -68,6 +71,27 @@ export const PayslipList = () => {
       setIsDetailModalOpen(true);
     } finally {
       setLoadingDetailId(null);
+    }
+  };
+
+  const handleDirectDownload = async (p) => {
+    setDownloadingSlipId(p.id);
+    try {
+      const res = await axiosClient.get(`/payslips/${p.id}/pdf`, { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Payslip-${p.employeeId}-${p.id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      addToast(`Downloaded official PDF for ${p.employeeName}`, 'success');
+    } catch (err) {
+      console.error('Failed to download PDF:', err);
+      addToast('Failed to generate payslip PDF download.', 'error');
+    } finally {
+      setDownloadingSlipId(null);
     }
   };
 
@@ -173,15 +197,27 @@ export const PayslipList = () => {
                 </Badge>
               </td>
               <td>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  icon={Eye}
-                  loading={loadingDetailId === p.id}
-                  onClick={() => handleOpenDetail(p)}
-                >
-                  View Document
-                </Button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    icon={Eye}
+                    loading={loadingDetailId === p.id}
+                    onClick={() => handleOpenDetail(p)}
+                  >
+                    View
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    icon={Download}
+                    loading={downloadingSlipId === p.id}
+                    onClick={() => handleDirectDownload(p)}
+                    title="Direct PDF Download"
+                  >
+                    PDF
+                  </Button>
+                </div>
               </td>
             </tr>
           ))}

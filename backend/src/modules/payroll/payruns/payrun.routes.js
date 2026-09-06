@@ -24,6 +24,7 @@ router.post('/', requirePermission('Payruns', 'create'), validate(createPayrunSc
 router.get('/', requirePermission('Payruns', 'read'), validate(queryPayrunSchema, 'query'), payrunController.list);
 router.get('/:id', requirePermission('Payruns', 'read'), payrunController.getById);
 router.get('/:id/warnings', requirePermission('Payruns', 'read'), payrunController.getWarnings);
+router.get('/:id/summary-pdf', requirePermission('Payruns', 'read'), payrunController.getSummaryPdf);
 
 // Processing Actions
 router.post('/:id/compute', requirePermission('Payruns', 'update'), payrunController.compute);

@@ -13,6 +13,8 @@ export const updateUserSchema = Joi.object({
   password: Joi.string().min(6),
   employee_id: Joi.number().integer().positive().allow(null),
   is_active: Joi.boolean(),
+  role_ids: Joi.array().items(Joi.number().integer().positive()),
+  job_position_id: Joi.number().integer().positive().allow(null),
 });
 
 export const assignRoleSchema = Joi.object({

@@ -22,5 +22,6 @@ router.get('/', requirePermission('Payslips', 'read'), validate(queryPayslipSche
  */
 router.get('/:id', requirePermission('Payslips', 'read'), payslipController.getById);
 router.get('/:id/pdf', requirePermission('Payslips', 'read'), payslipController.getPdf);
+router.post('/:id/send-email', requirePermission('Payslips', 'read'), payslipController.sendEmail);
 
 export default router;

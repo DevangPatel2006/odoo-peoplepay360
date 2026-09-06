@@ -19,8 +19,14 @@ export const getPdf = async (req, res) => {
   return res.sendFile(path.resolve(filePath));
 };
 
+export const sendEmail = async (req, res) => {
+  const result = await payslipService.sendEmail(req.params.id, req.user);
+  return ok(res, result);
+};
+
 export default {
   list,
   getById,
   getPdf,
+  sendEmail,
 };

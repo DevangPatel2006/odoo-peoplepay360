@@ -10,7 +10,8 @@ import {
   Eye, 
   FileText, 
   RefreshCw,
-  ArrowLeft
+  ArrowLeft,
+  Download
 } from 'lucide-react';
 import { useApp } from '../../../store';
 import { ConfirmModal } from '../../../components/ui';
@@ -112,6 +113,29 @@ export const PayrunProcessing = ({ payrun, onDone }) => {
     } catch (err) {
       console.error('Failed to send payslips:', err);
       addToast(err.response?.data?.error?.message || 'Failed to dispatch payslip emails', 'error');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleExportSummaryPdf = async () => {
+    setLoadingAction('export-pdf');
+    try {
+      const response = await axiosClient.get(`/payruns/${payrunId}/summary-pdf`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Payrun_${payrunId}_Disbursement_Summary.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      addToast(`Downloaded Payrun Summary PDF statement!`, 'success');
+    } catch (err) {
+      console.error('Failed to download payrun summary PDF:', err);
+      addToast('Failed to export payrun summary PDF.', 'error');
     } finally {
       setLoadingAction(null);
     }
@@ -290,6 +314,17 @@ export const PayrunProcessing = ({ payrun, onDone }) => {
             style={{ color: '#FFFFFF', borderColor: '#334155' }}
           >
             Refresh
+          </Button>
+
+          <Button 
+            variant="outline" 
+            size="sm" 
+            icon={Download}
+            loading={loadingAction === 'export-pdf'}
+            onClick={handleExportSummaryPdf}
+            style={{ color: '#FFFFFF', borderColor: '#334155' }}
+          >
+            Export Summary (PDF)
           </Button>
 
           {currentStatus === 'Draft' && (

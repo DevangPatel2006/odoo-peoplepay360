@@ -1,24 +1,49 @@
 import { query } from '../../config/db.js';
 
-export const findAll = async ({ limit, offset }) => {
-  const countRes = await query('SELECT COUNT(*) FROM users');
+export const findAll = async ({ limit, offset, search }) => {
+  const params = [];
+  let searchClause = '';
+  if (search && search.trim()) {
+    params.push(`%${search.trim()}%`);
+    searchClause = `WHERE u.work_email ILIKE $1 OR e.first_name ILIKE $1 OR e.last_name ILIKE $1 OR d.name ILIKE $1 OR jp.title ILIKE $1`;
+  }
+
+  const countRes = await query(`
+    SELECT COUNT(DISTINCT u.id) 
+    FROM users u 
+    LEFT JOIN employees e ON e.id = u.employee_id 
+    LEFT JOIN departments d ON d.id = e.department_id 
+    LEFT JOIN job_positions jp ON jp.id = e.job_position_id 
+    ${searchClause}
+  `, params);
   const total = parseInt(countRes.rows[0].count, 10);
+
+  const queryParams = search && search.trim() ? [params[0], limit, offset] : [limit, offset];
+  const limitPlaceholder = search && search.trim() ? '$2' : '$1';
+  const offsetPlaceholder = search && search.trim() ? '$3' : '$2';
 
   const usersRes = await query(
     `SELECT u.id, u.employee_id, u.work_email, u.is_active, u.last_login_at, u.created_at, u.updated_at,
             e.first_name, e.last_name, e.employee_code,
+            d.name AS department_name,
+            jp.title AS job_position_title,
+            e.department_id,
+            e.job_position_id,
             COALESCE(
               json_agg(json_build_object('id', r.id, 'name', r.name)) FILTER (WHERE r.id IS NOT NULL),
               '[]'
             ) AS roles
      FROM users u
      LEFT JOIN employees e ON e.id = u.employee_id
+     LEFT JOIN departments d ON d.id = e.department_id
+     LEFT JOIN job_positions jp ON jp.id = e.job_position_id
      LEFT JOIN user_roles ur ON ur.user_id = u.id
      LEFT JOIN roles r ON r.id = ur.role_id
-     GROUP BY u.id, e.id
+     ${searchClause}
+     GROUP BY u.id, e.id, d.name, jp.title
      ORDER BY u.id ASC
-     LIMIT $1 OFFSET $2`,
-    [limit, offset]
+     LIMIT ${limitPlaceholder} OFFSET ${offsetPlaceholder}`,
+    queryParams
   );
 
   return { rows: usersRes.rows, total };
@@ -28,16 +53,22 @@ export const findById = async (id) => {
   const res = await query(
     `SELECT u.id, u.employee_id, u.work_email, u.is_active, u.last_login_at, u.created_at, u.updated_at,
             e.first_name, e.last_name, e.employee_code,
+            d.name AS department_name,
+            jp.title AS job_position_title,
+            e.department_id,
+            e.job_position_id,
             COALESCE(
               json_agg(json_build_object('id', r.id, 'name', r.name)) FILTER (WHERE r.id IS NOT NULL),
               '[]'
             ) AS roles
      FROM users u
      LEFT JOIN employees e ON e.id = u.employee_id
+     LEFT JOIN departments d ON d.id = e.department_id
+     LEFT JOIN job_positions jp ON jp.id = e.job_position_id
      LEFT JOIN user_roles ur ON ur.user_id = u.id
      LEFT JOIN roles r ON r.id = ur.role_id
      WHERE u.id = $1
-     GROUP BY u.id, e.id`,
+     GROUP BY u.id, e.id, d.name, jp.title`,
     [id]
   );
 
@@ -124,6 +155,7 @@ export default {
   remove,
   addRole,
   removeRole,
+  setUserRoles,
   findRoleIdByName,
   getAllRoles,
 };

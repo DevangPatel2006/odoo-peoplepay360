@@ -18,6 +18,7 @@ router.get('/roles', requirePermission('Users', 'read'), userController.getRoles
 router.get('/:id', requirePermission('Users', 'read'), userController.getById);
 router.post('/', requirePermission('Users', 'create'), validate(createUserSchema), userController.create);
 router.patch('/:id', requirePermission('Users', 'update'), validate(updateUserSchema), userController.update);
+router.put('/:id', requirePermission('Users', 'update'), validate(updateUserSchema), userController.update);
 router.delete('/:id', requirePermission('Users', 'delete'), userController.remove);
 
 router.post('/:id/roles', requirePermission('Users', 'update'), validate(assignRoleSchema), userController.addRole);

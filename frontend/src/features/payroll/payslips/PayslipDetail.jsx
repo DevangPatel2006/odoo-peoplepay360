@@ -31,22 +31,45 @@ export const PayslipDetail = ({ payslip, isOpen, onClose }) => {
   const deductionLines = lines.filter((l) => ['Deduction', 'Deductions'].includes(l.category));
   const netLines = lines.filter((l) => ['Net', 'Net Pay'].includes(l.category));
 
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+
   const handlePrintPDF = () => {
     window.print();
   };
 
   const handleDownloadPDF = async () => {
+    setDownloadingPdf(true);
     try {
       const res = await axiosClient.get(`/payslips/${payslip.id}/pdf`, { responseType: 'blob' });
       const url = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', `Payslip-${empCode}-${payslip.id}.pdf`);
+      link.setAttribute('download', `Payslip-${empCode || payslip.id}-${payslip.id}.pdf`);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
+      addToast(`Downloaded official PDF for ${empName}`, 'success');
     } catch (e) {
+      console.error('Failed to download PDF, opening print preview:', e);
       window.print();
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    setSendingEmail(true);
+    try {
+      const res = await axiosClient.post(`/payslips/${payslip.id}/send-email`);
+      const recipient = res.data?.data?.recipient || res.data?.recipient || payslip.work_email || empName;
+      addToast(`Official payslip statement successfully sent to ${recipient}!`, 'success');
+    } catch (err) {
+      console.error('Failed sending payslip email:', err);
+      addToast(err.response?.data?.error?.message || 'Failed to dispatch payslip email.', 'error');
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -66,10 +89,10 @@ export const PayslipDetail = ({ payslip, isOpen, onClose }) => {
           <Button variant="outline" icon={ExternalLink} onClick={handleViewPayrun}>
             View Payrun
           </Button>
-          <Button variant="outline" icon={Download} onClick={handleDownloadPDF}>
+          <Button variant="outline" icon={Download} loading={downloadingPdf} onClick={handleDownloadPDF}>
             Download PDF
           </Button>
-          <Button variant="accent" icon={Mail} onClick={() => addToast(`Payslip PDF statement queued for ${empName}!`, 'success')}>
+          <Button variant="accent" icon={Mail} loading={sendingEmail} onClick={handleSendEmail}>
             Send Payslip Email
           </Button>
         </>

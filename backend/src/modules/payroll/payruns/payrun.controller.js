@@ -57,6 +57,15 @@ export const unarchive = async (req, res) => {
   return ok(res, payrun);
 };
 
+export const getSummaryPdf = async (req, res) => {
+  const { generatePayrunSummaryPdf } = await import('./payrun.pdf.js');
+  const pdfBuffer = await generatePayrunSummaryPdf(parseInt(req.params.id, 10), req.user.companyId);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="Payrun_${req.params.id}_Summary.pdf"`);
+  res.setHeader('Content-Length', pdfBuffer.length);
+  return res.send(pdfBuffer);
+};
+
 export default {
   list,
   getById,
@@ -69,4 +78,5 @@ export default {
   unarchive,
   sendPayslips,
   getWarnings,
+  getSummaryPdf,
 };

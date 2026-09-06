@@ -431,6 +431,28 @@ async function seed() {
         wage
       });
 
+      // Insert User Account for Employee
+      const defaultHash = '$2b$10$9YExRphQKzq0hTVYno5qTu76c5VhdlcfYtWiSPfNyMD1JDFROyvV6'; // 'Password123!'
+      const userRes = await client.query(`
+        INSERT INTO users (employee_id, work_email, password_hash, is_active)
+        VALUES ($1, $2, $3, true)
+        ON CONFLICT (work_email) DO UPDATE SET employee_id = $1
+        RETURNING id
+      `, [empId, email, defaultHash]);
+      const newUserId = userRes.rows[0].id;
+
+      let assignedRole = 1; // Default: Employee
+      if (deptId === 1 && empId <= 6) assignedRole = 5; // Admin
+      else if (deptId === 2 && empId <= 25) assignedRole = 2; // HR Manager
+      else if (deptId === 5 && empId <= 30) assignedRole = 4; // HR Payroll Manager
+      else if (deptId === 2 || deptId === 5) assignedRole = 3; // HR Payroll User
+
+      await client.query(`
+        INSERT INTO user_roles (user_id, role_id)
+        VALUES ($1, $2)
+        ON CONFLICT DO NOTHING
+      `, [newUserId, assignedRole]);
+
       // 7. Insert Running Contract for Each Employee
       const contractNumber = `CNT-2026-${String(empId).padStart(4, '0')}`;
       await client.query(`

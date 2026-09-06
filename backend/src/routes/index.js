@@ -19,6 +19,8 @@ import payrunRoutes from '../modules/payroll/payruns/payrun.routes.js';
 import payslipRoutes from '../modules/payroll/payslips/payslip.routes.js';
 import warningRoutes from '../modules/payroll/warnings/warning.routes.js';
 import dashboardRoutes from '../dashboard/dashboard.routes.js';
+import mailRoutes from '../modules/mail/mail.routes.js';
+import reportRoutes from '../modules/reports/report.routes.js';
 
 const router = Router();
 
@@ -66,7 +68,13 @@ router.use('/payroll/payslips', payslipRoutes);
 router.use('/warnings', warningRoutes);
 router.use('/payroll/warnings', warningRoutes);
 
-// Dashboard
+// Dashboard & Analytics
 router.use('/dashboard', dashboardRoutes);
+
+// Executive Reports & Analytics Export
+router.use('/reports', reportRoutes);
+
+// Mail Delivery Verification
+router.use('/mail', mailRoutes);
 
 export default router;

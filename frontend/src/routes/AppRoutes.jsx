@@ -16,16 +16,9 @@ import { ReportsPage } from '../features/reports/ReportsPage';
 import { DesignSystemShowcase } from '../features/designSystem/DesignSystemShowcase';
 import { useApp } from '../store';
 
-// Smart redirect that sends unauthenticated users to /login,
-// employees to /attendance, and management to /dashboard
+// Root path redirect: Always sends user to /login as first landing page
 const RootRedirect = () => {
-  const { user, token } = useApp();
-  if (!token || !user) {
-    return <Navigate to="/login" replace />;
-  }
-  const userRoles = Array.isArray(user?.roles) ? user.roles : [user?.role || ''];
-  const isEmployeeOnly = userRoles.length > 0 && userRoles.every((r) => r === 'Employee');
-  return <Navigate to={isEmployeeOnly ? '/attendance' : '/dashboard'} replace />;
+  return <Navigate to="/login" replace />;
 };
 
 export const AppRoutes = () => {
